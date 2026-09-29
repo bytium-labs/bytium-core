@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "types": ["@types/node", "@types/jest"],
+    "paths": {
+      "@database": ["./database/index.ts"],
+      "@database/*": ["./database/*"]
+    }
+  },
+  "include": [
+    "./src/**/*.ts"
+  ]
+}

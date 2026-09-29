@@ -1,0 +1,12 @@
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' | grep -E '^packages/[^/]+/src/' || true)
+
+[ -z "$staged" ] && exit 0
+
+# Auto-fix formatting and lint on staged source files, then re-stage them. Non-blocking by design:
+# remaining (non-auto-fixable) lint errors never fail the commit.
+echo "$staged" | xargs npx prettier --write
+echo "$staged" | xargs npx eslint --fix
+
+echo "$staged" | xargs git add
+
+exit 0

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "types": ["@types/node", "@types/jest"],
+    "paths": {
+      "@multipart": ["./multipart/index.ts"],
+      "@multipart/*": ["./multipart/*"]
+    }
+  },
+  "include": ["./src/**/*.ts"]
+}

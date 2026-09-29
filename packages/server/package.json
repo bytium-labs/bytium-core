@@ -1,0 +1,43 @@
+{
+  "name": "@bytium-core/server",
+  "version": "1.0.0",
+  "description": "FiveM server-side decorators and utilities for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "server"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "@bytium-core/common": "^1.0.0"
+  },
+  "devDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

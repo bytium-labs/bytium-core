@@ -1,0 +1,54 @@
+{
+  "name": "@bytium-core/nui-react",
+  "version": "1.0.0",
+  "description": "React hooks for the bytium-core framework's NUI SDK.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/nui-react"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "nui",
+    "react",
+    "hooks"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "@bytium-core/nui": "^1.0.0",
+    "react": ">=17.0.0"
+  },
+  "devDependencies": {
+    "@bytium-core/nui": "^1.0.0",
+    "@types/react": "^19.3.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

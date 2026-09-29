@@ -1,0 +1,7 @@
+export enum GraphEdgeTypeEnum {
+  CONTAINS = "CONTAINS",
+  IMPORTS = "IMPORTS",
+  EXPORTS = "EXPORTS",
+  DEPENDENCY = "DEPENDENCY",
+  MULTI_MEMBER = "MULTI_MEMBER",
+}

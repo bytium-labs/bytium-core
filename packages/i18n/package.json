@@ -1,0 +1,56 @@
+{
+  "name": "@bytium-core/i18n",
+  "version": "1.0.0",
+  "description": "Internationalization and translatable messages for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/i18n"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "i18n",
+    "translations",
+    "localization"
+  ],
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json",
+    "dev": "tsc --watch",
+    "test": "jest --config jest.config.js"
+  },
+  "peerDependencies": {
+    "@bytium-core/common": "^1.0.0"
+  },
+  "devDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "@bytium-core/testing": "^1.0.0",
+    "@citizenfx/client": "^2.0.35805-1",
+    "@citizenfx/server": "^2.0.35805-1",
+    "ts-jest": "^29.4.14",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.3",
+    "jest": "^30.5.2",
+    "tsc-alias": "^1.8.11",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "@bytium-core/database",
+  "version": "1.0.0",
+  "description": "TypeORM database integration for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/database"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "database",
+    "typeorm",
+    "orm"
+  ],
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json",
+    "dev": "tsc --watch",
+    "test": "jest --config jest.config.js"
+  },
+  "dependencies": {
+    "typeorm": "^1.1.1"
+  },
+  "peerDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "@bytium-core/testing": "^1.0.0",
+    "ts-jest": "^29.4.14",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.3",
+    "@types/sql.js": "^1.4.9",
+    "jest": "^30.5.2",
+    "reflect-metadata": "^0.2.2",
+    "sql.js": "^1.14.2",
+    "tsc-alias": "^1.8.11",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "@bytium-core/nui",
+  "version": "1.0.0",
+  "description": "Browser-side NUI SDK for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/nui"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "nui",
+    "ui"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./global": "./dist/nui.global.js"
+  },
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && esbuild src/global.ts --bundle --format=iife --target=es2022 --outfile=dist/nui.global.js",
+    "test": "jest --config jest.config.js"
+  },
+  "devDependencies": {
+    "ts-jest": "^29.4.14",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.2.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

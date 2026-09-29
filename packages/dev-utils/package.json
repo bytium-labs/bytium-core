@@ -1,0 +1,54 @@
+{
+  "name": "@bytium-core/dev-utils",
+  "version": "1.0.0",
+  "description": "Webpack build tooling and development utilities for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/dev-utils"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "webpack",
+    "build",
+    "tooling"
+  ],
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "html-webpack-plugin": "^5.6.8",
+    "terser-webpack-plugin": "^5.6.1",
+    "ts-loader": "^9.6.2"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "tsc-alias": "^1.8.11",
+    "typescript": "^5.9.3",
+    "webpack": "^5.111.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

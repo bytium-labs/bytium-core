@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "types": ["@types/node", "@types/jest", "@citizenfx/client", "@citizenfx/server"],
+    "paths": {
+      "@config": ["./config/index.ts"],
+      "@config/*": ["./config/*"]
+    }
+  },
+  "include": [
+    "./src/**/*.ts"
+  ]
+}

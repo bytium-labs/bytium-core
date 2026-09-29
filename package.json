@@ -1,0 +1,65 @@
+{
+  "name": "bytium-core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Modern TypeScript framework for FiveM Enhanced with dependency injection, modules, decorator-driven handling of the FiveM runtime (commands, events, ticks, NUI, HTTP), and cross-resource communication.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://github.com/bytium-labs/bytium-core#readme",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @bytium-core/common && npm run build -w @bytium-core/http && npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "link": "for dir in packages/*; do (cd \"$dir\" && yarn link); done",
+    "lint": "eslint \"packages/*/src/**/*.ts\"",
+    "lint:fix": "eslint \"packages/*/src/**/*.ts\" --fix",
+    "format": "prettier --write \"packages/*/src/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
+    "typecheck": "for dir in packages/*; do if [ -f \"$dir/tsconfig.json\" ]; then (cd \"$dir\" && npx tsc --noEmit) || exit 1; fi; done",
+    "release:major": "npm version major --workspaces --include-workspace-root --no-git-tag-version && node scripts/sync-workspace-ranges.mjs && npm install --package-lock-only",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "dependency-injection"
+  ],
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "devDependencies": {
+    "@citizenfx/client": "^2.0.35805-1",
+    "@citizenfx/server": "^2.0.35805-1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.3",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "husky": "^9.1.7",
+    "jest": "^30.5.2",
+    "prettier": "^3.9.9",
+    "tsc-alias": "^1.8.11",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "webpack": "^5.111.1"
+  },
+  "engines": {
+    "node": ">=26.0.0",
+    "yarn": ">=1.22.22"
+  },
+  "engineStrict": true,
+  "volta": {
+    "node": "26.3.0",
+    "yarn": "1.22.22"
+  }
+}

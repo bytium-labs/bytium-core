@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "types": ["@types/node", "@types/jest"],
+    "paths": {
+      "@math": ["./math/index.ts"],
+      "@math/*": ["./math/*"]
+    }
+  },
+  "include": [
+    "./src/**/*.ts"
+  ]
+}

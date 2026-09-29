@@ -1,0 +1,58 @@
+{
+  "name": "@bytium-core/testing",
+  "version": "1.0.0",
+  "description": "Testing utilities and builders for the bytium-core framework.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytium-labs/bytium-core.git",
+    "directory": "packages/testing"
+  },
+  "bugs": {
+    "url": "https://github.com/bytium-labs/bytium-core/issues"
+  },
+  "homepage": "https://bytium.dev",
+  "author": "Jakub Michalski - lilabyte (j.michalski@fused.pl)",
+  "license": "MIT",
+  "keywords": [
+    "bytium",
+    "fivem",
+    "gta",
+    "typescript",
+    "framework",
+    "enhanced",
+    "testing",
+    "jest"
+  ],
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./jest-setup": "./dist/jest.setup.js"
+  },
+  "scripts": {
+    "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json",
+    "dev": "tsc --watch",
+    "test": "jest --config jest.config.js"
+  },
+  "peerDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@bytium-core/common": "^1.0.0",
+    "@types/jest": "^30.0.0",
+    "ts-jest": "^29.4.14",
+    "@types/node": "^26.6.3",
+    "jest": "^30.5.2",
+    "reflect-metadata": "^0.2.2",
+    "tsc-alias": "^1.8.11",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

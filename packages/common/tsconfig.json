@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "types": ["@types/node", "@types/jest", "@citizenfx/client", "@citizenfx/server"],
+    "paths": {
+      "@citizenfx": ["./citizenfx/index.ts"],
+      "@citizenfx/*": ["./citizenfx/*"],
+      "@logger": ["./logger/index.ts"],
+      "@logger/*": ["./logger/*"],
+      "@core": ["./core/index.ts"],
+      "@core/*": ["./core/*"],
+      "@shared": ["./shared/index.ts"],
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": [
+    "./src/**/*.ts"
+  ]
+}
