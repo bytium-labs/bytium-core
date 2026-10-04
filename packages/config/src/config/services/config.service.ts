@@ -40,6 +40,8 @@ export class ConfigService {
   }
 
   /** Reads a config value by dot-notation key, returning `defaultValue` when it is absent. */
+  get<T = any>(key: string): T | undefined;
+  get<T = any>(key: string, defaultValue: T): T;
   get<T = any>(key: string, defaultValue?: T): T | undefined {
     const value = this.resolve(key);
 
