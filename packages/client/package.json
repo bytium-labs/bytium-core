@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "FiveM client-side decorators and utilities for the bytium-core framework.",
   "repository": {
     "type": "git",
@@ -31,10 +31,10 @@
     "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json && tsc-alias --project tsconfig.build.json"
   },
   "peerDependencies": {
-    "@bytium-core/common": "^1.0.0"
+    "@bytium-core/common": "^1.0.1"
   },
   "devDependencies": {
-    "@bytium-core/common": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
     "typescript": "^5.9.3"
   },
   "publishConfig": {

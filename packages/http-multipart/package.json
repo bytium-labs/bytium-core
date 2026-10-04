@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/http-multipart",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "multipart/form-data (file upload) support for @bytium-core/http.",
   "repository": {
     "type": "git",
@@ -35,14 +35,14 @@
     "test": "jest --config jest.config.js"
   },
   "peerDependencies": {
-    "@bytium-core/common": "^1.0.0",
-    "@bytium-core/http": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
+    "@bytium-core/http": "^1.0.1",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@bytium-core/common": "^1.0.0",
-    "@bytium-core/http": "^1.0.0",
-    "@bytium-core/testing": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
+    "@bytium-core/http": "^1.0.1",
+    "@bytium-core/testing": "^1.0.1",
     "ts-jest": "^29.4.14",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.3",

@@ -1,6 +1,6 @@
 {
   "name": "bytium-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Modern TypeScript framework for FiveM Enhanced with dependency injection, modules, decorator-driven handling of the FiveM runtime (commands, events, ticks, NUI, HTTP), and cross-resource communication.",
   "repository": {
@@ -23,6 +23,8 @@
     "format": "prettier --write \"packages/*/src/**/*.ts\"",
     "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
     "typecheck": "for dir in packages/*; do if [ -f \"$dir/tsconfig.json\" ]; then (cd \"$dir\" && npx tsc --noEmit) || exit 1; fi; done",
+    "release:patch": "npm version patch --workspaces --include-workspace-root --no-git-tag-version && node scripts/sync-workspace-ranges.mjs && npm install --package-lock-only",
+    "release:minor": "npm version minor --workspaces --include-workspace-root --no-git-tag-version && node scripts/sync-workspace-ranges.mjs && npm install --package-lock-only",
     "release:major": "npm version major --workspaces --include-workspace-root --no-git-tag-version && node scripts/sync-workspace-ranges.mjs && npm install --package-lock-only",
     "prepare": "husky"
   },

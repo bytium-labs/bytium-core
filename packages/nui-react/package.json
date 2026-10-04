@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/nui-react",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "React hooks for the bytium-core framework's NUI SDK.",
   "repository": {
     "type": "git",
@@ -40,11 +40,11 @@
     "build": "rm -rf \"./dist\" && tsc --project tsconfig.build.json"
   },
   "peerDependencies": {
-    "@bytium-core/nui": "^1.0.0",
+    "@bytium-core/nui": "^1.0.1",
     "react": ">=17.0.0"
   },
   "devDependencies": {
-    "@bytium-core/nui": "^1.0.0",
+    "@bytium-core/nui": "^1.0.1",
     "@types/react": "^19.3.0",
     "typescript": "^5.9.3"
   },
