@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/nui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Browser-side NUI SDK for the bytium-core framework.",
   "repository": {
     "type": "git",

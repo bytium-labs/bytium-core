@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/database",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeORM database integration for the bytium-core framework.",
   "repository": {
     "type": "git",
@@ -39,12 +39,12 @@
     "typeorm": "^1.1.1"
   },
   "peerDependencies": {
-    "@bytium-core/common": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@bytium-core/common": "^1.0.0",
-    "@bytium-core/testing": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
+    "@bytium-core/testing": "^1.0.1",
     "ts-jest": "^29.4.14",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.6.3",

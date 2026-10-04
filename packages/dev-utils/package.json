@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/dev-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Webpack build tooling and development utilities for the bytium-core framework.",
   "repository": {
     "type": "git",

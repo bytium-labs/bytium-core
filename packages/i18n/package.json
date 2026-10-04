@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/i18n",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Internationalization and translatable messages for the bytium-core framework.",
   "repository": {
     "type": "git",
@@ -36,11 +36,11 @@
     "test": "jest --config jest.config.js"
   },
   "peerDependencies": {
-    "@bytium-core/common": "^1.0.0"
+    "@bytium-core/common": "^1.0.1"
   },
   "devDependencies": {
-    "@bytium-core/common": "^1.0.0",
-    "@bytium-core/testing": "^1.0.0",
+    "@bytium-core/common": "^1.0.1",
+    "@bytium-core/testing": "^1.0.1",
     "@citizenfx/client": "^2.0.35805-1",
     "@citizenfx/server": "^2.0.35805-1",
     "ts-jest": "^29.4.14",
