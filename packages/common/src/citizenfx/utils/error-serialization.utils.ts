@@ -11,6 +11,7 @@ export function serializeError(error: Error | unknown): SerializedErrorInterface
     return {
       __bytiumError: {
         __isErrorInstance: true,
+        __isBytiumException: true,
         name: error.name,
         message: error.message,
         code: error.code,
@@ -22,6 +23,7 @@ export function serializeError(error: Error | unknown): SerializedErrorInterface
   return {
     __bytiumError: {
       __isErrorInstance: true,
+      __isBytiumException: true,
       name: "InternalError",
       message: "Internal server error",
       code: 500,
@@ -42,6 +44,7 @@ function serializeVerbose(error: Error | unknown): SerializedErrorInterface {
     return {
       __bytiumError: {
         __isErrorInstance: true,
+        ...(error instanceof BytiumException ? { __isBytiumException: true } : {}),
         name: error.name,
         message: error.message,
         stack: error.stack,
@@ -66,13 +69,19 @@ export function deserializeError(serialized: SerializedErrorInterface | unknown)
   const errorData = (serialized as SerializedErrorInterface).__bytiumError;
 
   if (errorData.__isErrorInstance) {
-    const error = new Error(errorData.message);
+    const isBytiumException = errorData.__isBytiumException === true;
+    const error = isBytiumException
+      ? new BytiumException(errorData.message ?? "", errorData.code, errorData.errors)
+      : new Error(errorData.message);
+    const consumedKeys = isBytiumException
+      ? ["__isErrorInstance", "__isBytiumException", "name", "message", "stack", "code", "errors"]
+      : ["__isErrorInstance", "__isBytiumException", "name", "message", "stack"];
 
     error.name = errorData.name ?? error.name;
     error.stack = errorData.stack;
 
     for (const key of Object.keys(errorData)) {
-      if (!["__isErrorInstance", "name", "message", "stack"].includes(key)) {
+      if (!consumedKeys.includes(key)) {
         Reflect.set(error, key, Reflect.get(errorData, key));
       }
     }
@@ -81,4 +90,8 @@ export function deserializeError(serialized: SerializedErrorInterface | unknown)
   }
 
   return errorData.value;
+}
+
+export function isSerializedError(value: unknown): value is SerializedErrorInterface {
+  return value !== null && typeof value === "object" && !Array.isArray(value) && "__bytiumError" in value;
 }

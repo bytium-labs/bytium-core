@@ -5,7 +5,7 @@ import { ConstructorType } from "@shared";
 import { Logger } from "@logger";
 
 export class BytiumRuntimeManager {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer: boolean = IsDuplicityVersion();
   readonly #resourceName: string = GetCurrentResourceName();
   #resourceState: BytiumResourceStateEnum = BytiumResourceStateEnum.STARTING;

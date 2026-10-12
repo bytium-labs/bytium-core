@@ -24,7 +24,7 @@ import { REQUEST_LIKE_METHOD_TYPES } from "@shared/consts/request-like-method-ty
 import { Logger } from "@logger";
 
 export class HandlerRegistrar {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
 
   constructor(
     private readonly graph: DependencyGraph,

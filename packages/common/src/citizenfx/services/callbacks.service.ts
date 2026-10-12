@@ -1,8 +1,7 @@
 import { Injectable } from "@core/decorators/injectable.decorator";
 import { Logger } from "@logger";
-import { deserializeError } from "@citizenfx/utils/error-serialization.utils";
+import { deserializeError, isSerializedError } from "@citizenfx/utils/error-serialization.utils";
 import { CallbackQueueEntryInterface } from "@citizenfx/interfaces/callback-queue-entry.interface";
-import { SerializedErrorInterface } from "@citizenfx/interfaces/serialized-error.interface";
 
 @Injectable()
 export class CallbacksService {
@@ -15,10 +14,6 @@ export class CallbacksService {
 
   #generateId(): string {
     return `${this.#currentResourceName}:${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-  }
-
-  #isSerializedError(value: unknown): value is SerializedErrorInterface {
-    return value !== null && typeof value === "object" && !Array.isArray(value) && "__bytiumError" in value;
   }
 
   #dispatchResponse(
@@ -34,7 +29,7 @@ export class CallbacksService {
     delete queue[name][responseIdentifier];
     clearTimeout(entry.timer);
 
-    if (args.length === 1 && this.#isSerializedError(args[0])) {
+    if (args.length === 1 && isSerializedError(args[0])) {
       entry.reject(deserializeError(args[0]));
 
       return;

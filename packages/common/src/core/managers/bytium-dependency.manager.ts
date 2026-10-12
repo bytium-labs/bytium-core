@@ -34,7 +34,7 @@ import { CitizenFXRuntimeManager } from "@citizenfx/managers/citizenfx-runtime.m
 import { CitizenFXRegistriesInterface } from "@citizenfx/interfaces/citizenfx-registries.interface";
 
 export class BytiumDependencyManager {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #scanner: BytiumDependencyScanner;
   readonly #validator: DependencyValidator;
   readonly #citizenFXRuntimeManager: CitizenFXRuntimeManager;

@@ -3,7 +3,7 @@ import { Logger } from "@logger";
 import { ConstructorType, sleep } from "@shared";
 
 export class RegisteredTickModel {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   #tickId?: number;
   isRunning = false;
 

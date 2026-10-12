@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { BytiumException, ValidationException } from "@core";
-import { serializeError } from "@citizenfx/utils/error-serialization.utils";
+import { deserializeError, serializeError } from "@citizenfx/utils/error-serialization.utils";
 
 describe("serializeError", () => {
   let originalGetConvar: typeof GetConvar;
@@ -104,6 +104,45 @@ describe("serializeError", () => {
 
       expect(payload.__isErrorInstance).toBe(false);
       expect(payload.value).toBe("raw value");
+    });
+  });
+  describe("deserializeError", () => {
+    it("should rebuild a serialized BytiumException with its code and errors", () => {
+      const serialized = serializeError(new BytiumException("denied", 403, { principal: ["Principal is required."] }));
+      const deserialized = deserializeError(serialized);
+
+      expect(deserialized).toBeInstanceOf(BytiumException);
+      expect((deserialized as BytiumException).code).toBe(403);
+      expect((deserialized as BytiumException).errors).toEqual({ principal: ["Principal is required."] });
+    });
+
+    it("should rebuild the sanitized internal error as a BytiumException with code 500", () => {
+      const deserialized = deserializeError(serializeError(new TypeError("boom")));
+
+      expect(deserialized).toBeInstanceOf(BytiumException);
+      expect((deserialized as BytiumException).code).toBe(500);
+    });
+
+    it("should keep a dev-mode error with a string code a plain Error and preserve the code", () => {
+      enableDevMode();
+
+      const systemError = new Error("ENOENT: no such file or directory");
+
+      Reflect.set(systemError, "code", "ENOENT");
+
+      const deserialized = deserializeError(serializeError(systemError));
+
+      expect(deserialized).toBeInstanceOf(Error);
+      expect(deserialized).not.toBeInstanceOf(BytiumException);
+      expect(Reflect.get(deserialized as Error, "code")).toBe("ENOENT");
+    });
+
+    it("should keep a serialized BytiumException identity across a second boundary", () => {
+      const once = deserializeError(serializeError(new BytiumException("denied", 403)));
+      const twice = deserializeError(serializeError(once));
+
+      expect(twice).toBeInstanceOf(BytiumException);
+      expect((twice as BytiumException).code).toBe(403);
     });
   });
 });

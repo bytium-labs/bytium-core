@@ -7,6 +7,8 @@
     "paths": {
       "@citizenfx": ["./citizenfx/index.ts"],
       "@citizenfx/*": ["./citizenfx/*"],
+      "@invocation": ["./invocation/index.ts"],
+      "@invocation/*": ["./invocation/*"],
       "@logger": ["./logger/index.ts"],
       "@logger/*": ["./logger/*"],
       "@core": ["./core/index.ts"],

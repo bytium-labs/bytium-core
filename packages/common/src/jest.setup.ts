@@ -24,6 +24,7 @@ const exportsStore: Record<string, any> = {};
 
 (global as any).IsDuplicityVersion = () => false;
 (global as any).GetCurrentResourceName = () => "test-resource";
+(global as any).GetInvokingResource = () => "invoking-resource";
 (global as any).GetConvar = (_key: string, defaultValue: string) => defaultValue;
 (global as any).GetResourceState = () => "started";
 (global as any).IsPlayerAceAllowed = () => true;

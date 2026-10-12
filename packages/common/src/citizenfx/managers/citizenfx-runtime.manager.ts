@@ -6,7 +6,7 @@ import { CommandSuggestionInterface } from "@citizenfx/interfaces/command-sugges
 import { RegisteredCommandModel } from "@citizenfx/models/registered-command";
 
 export class CitizenFXRuntimeManager {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
   #cronTickId?: number;
 

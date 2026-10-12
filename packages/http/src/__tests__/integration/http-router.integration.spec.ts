@@ -48,7 +48,7 @@ describe("HTTP router", () => {
   let httpHandler: (request: NativeHttpRequest, response: NativeHttpResponse) => void;
   let originalSetHttpHandler: typeof SetHttpHandler;
   const flush = async (): Promise<void> => {
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
   };
 
   beforeEach(() => {

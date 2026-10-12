@@ -31,7 +31,7 @@ describe("HTTP throttling", () => {
   let httpHandler: (request: NativeHttpRequest, response: NativeHttpResponse) => void;
   let originalSetHttpHandler: typeof SetHttpHandler;
   const flush = async (): Promise<void> => {
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await new Promise((resolve) => setImmediate(resolve));
   };
   const fire = async (address?: string): Promise<number> => {
     const response = mockResponse();
@@ -79,7 +79,7 @@ describe("HTTP throttling", () => {
   });
 
   it("should allow requests again once the window has elapsed", async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ doNotFake: ["setImmediate"] });
 
     try {
       @HttpController("")

@@ -11,7 +11,7 @@ import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
 
 export class CommandsRegistry {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
   readonly #commandsWithSuggestionsByName = new Map<string, RegisteredCommandModel>();
 
@@ -23,27 +23,34 @@ export class CommandsRegistry {
     handlerInvoker: HandlerInvoker,
   ): (source: number, args: string[], rawCommand: string) => void {
     const commandHandleWrapper = async (source: number, args: string[], rawCommand: string) => {
-      try {
-        this.#logger.debug(
-          `Received command "${options.name}" from source "${source}" (typeof source: ${typeof source})`,
-        );
+      const context = { type: "COMMAND", provider: instance, methodName, source, args, rawCommand };
 
-        if (this.#isCitizenFXServer) {
-          if (!(options as ServerCommandOptions).canBeUsedByServer && Number(source) <= 0) {
-            throw new CommandNotAllowedFromConsoleException("This command cannot be executed from the server console.");
+      await handlerInvoker.runCorrelated(context, async () => {
+        try {
+          this.#logger.debug(
+            `Received command "${options.name}" from source "${source}" (typeof source: ${typeof source})`,
+          );
+
+          if (this.#isCitizenFXServer) {
+            if (!(options as ServerCommandOptions).canBeUsedByServer && Number(source) <= 0) {
+              throw new CommandNotAllowedFromConsoleException(
+                "This command cannot be executed from the server console.",
+              );
+            }
+
+            if (!(options as ServerCommandOptions).canBeUsedByPlayers && Number(source) > 0) {
+              throw new CommandNotAllowedForPlayersException("This command cannot be executed by players.");
+            }
           }
 
-          if (!(options as ServerCommandOptions).canBeUsedByPlayers && Number(source) > 0) {
-            throw new CommandNotAllowedForPlayersException("This command cannot be executed by players.");
-          }
+          await handlerInvoker.invoke(context);
+        } catch (err) {
+          this.#logger.error(
+            `Error while handling @Command on method ${methodName} in provider ${provider.name}:`,
+            err,
+          );
         }
-
-        const context = { type: "COMMAND", provider: instance, methodName, source, args, rawCommand };
-
-        await handlerInvoker.invoke(context);
-      } catch (err) {
-        this.#logger.error(`Error while handling @Command on method ${methodName} in provider ${provider.name}:`, err);
-      }
+      });
     };
 
     return commandHandleWrapper;

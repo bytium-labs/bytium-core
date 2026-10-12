@@ -29,10 +29,10 @@ export class LoggerLevelsManager {
   constructor() {
     this.#levels = this.#resolve();
 
-    AddConvarChangeListener(globalConvarKey(BytiumConvarEnum.LogLevel), () => {
+    AddConvarChangeListener(globalConvarKey(BytiumConvarEnum.LOG_LEVEL), () => {
       this.#levels = this.#resolve();
     });
-    AddConvarChangeListener(resourceConvarKey(BytiumConvarEnum.LogLevel), () => {
+    AddConvarChangeListener(resourceConvarKey(BytiumConvarEnum.LOG_LEVEL), () => {
       this.#levels = this.#resolve();
     });
   }
@@ -43,7 +43,7 @@ export class LoggerLevelsManager {
 
   #resolve(): LogLevelEnum[] {
     try {
-      const convarValue = resolveConvarValue(BytiumConvarEnum.LogLevel).toUpperCase();
+      const convarValue = resolveConvarValue(BytiumConvarEnum.LOG_LEVEL).toUpperCase();
 
       return this.#hierarchy[convarValue as LogLevelEnum] ?? this.#hierarchy[LogLevelEnum.INFO];
     } catch {

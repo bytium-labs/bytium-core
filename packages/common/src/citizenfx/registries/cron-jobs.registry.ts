@@ -2,9 +2,11 @@ import { CronOptions } from "@citizenfx/decorators/shared/cron.decorator";
 import { RegisteredCronJobModel } from "@citizenfx/models/registered-cron-job";
 import { CronJobAlreadyRegisteredException } from "@citizenfx/exceptions/cron-job-already-registered.exception";
 import { HandlerInvoker } from "@core/invokers/handler.invoker";
+import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
 
 export class CronJobsRegistry {
+  readonly #logger = new Logger("bytium-core");
   readonly #cronJobsByProviderAndMethodName = new Map<ConstructorType, Map<string, RegisteredCronJobModel>>();
 
   registerCronJob(
@@ -28,7 +30,15 @@ export class CronJobsRegistry {
     }
 
     const handle = async () => {
-      await handlerInvoker.invoke({ type: "CRON", provider: instance, methodName });
+      const context = { type: "CRON", provider: instance, methodName };
+
+      await handlerInvoker.runCorrelated(context, async () => {
+        try {
+          await handlerInvoker.invoke(context);
+        } catch (err) {
+          this.#logger.error(`Error while handling @Cron on method ${methodName} in provider ${provider.name}:`, err);
+        }
+      });
     };
 
     cronJobsByMethodName.set(methodName, new RegisteredCronJobModel(handle, options, provider, methodName));

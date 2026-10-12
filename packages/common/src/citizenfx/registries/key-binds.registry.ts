@@ -5,7 +5,7 @@ import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
 
 export class KeyBindsRegistry {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
 
   registerKeyBind(

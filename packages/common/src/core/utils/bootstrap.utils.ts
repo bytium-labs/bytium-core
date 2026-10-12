@@ -9,7 +9,7 @@ import { ConstructorType } from "@shared";
  * @param resource The class decorated with `@BytiumResource`.
  */
 export async function bootstrap<T extends ConstructorType>(resource: T): Promise<void> {
-  new Logger("bytium").debug(`bytium-core v${BYTIUM_VERSION} — bytium.dev`);
+  new Logger("bytium-core").debug(`bytium-core v${BYTIUM_VERSION} — bytium.dev`);
 
   await bytiumRuntimeManagerInstance.registerResource(resource);
 }

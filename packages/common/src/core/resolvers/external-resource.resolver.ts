@@ -11,12 +11,17 @@ import { ExternalDependencyUnavailableException } from "@core/exceptions/externa
 import { instanceOfForwardRefDependency } from "@core/interfaces/forward-ref-dependency.interface";
 import { parseExternalDependencyName } from "@core/utils/external-token.utils";
 import { getResourceExport } from "@core/utils/resource-export.utils";
+import {
+  isTransferable,
+  wrapTransferableForConsumer,
+  wrapTransferableForOwner,
+} from "@citizenfx/utils/transferable-marshaling.utils";
 import { ResourceStateEnum } from "@citizenfx/enums/resource-state.enum";
 import { ConstructorType, sleep } from "@shared";
 import { Logger } from "@logger";
 
 export class ExternalResourceResolver {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
 
   constructor(
     private readonly graph: DependencyGraph,
@@ -141,7 +146,8 @@ export class ExternalResourceResolver {
       );
     }
 
-    const instance = getExternalProvider();
+    const rawInstance = getExternalProvider();
+    const instance = isTransferable(rawInstance) ? wrapTransferableForConsumer(rawInstance) : rawInstance;
     const entry = new InstanceEntryModel(instance, BytiumProviderScopeEnum.SINGLETON);
 
     this.addInstance(node, entry);
@@ -160,10 +166,11 @@ export class ExternalResourceResolver {
     for (const exported of options.crossResourceExports) {
       if (typeof exported === "string") {
         exportedNames.push(exported);
-        global.exports(
-          `${options.name}:${exported}`,
-          () => resolveVisibleInstance(this.graph, exported, node)?.instance ?? null,
-        );
+        global.exports(`${options.name}:${exported}`, () => {
+          const instance = resolveVisibleInstance(this.graph, exported, node)?.instance;
+
+          return isTransferable(instance) ? wrapTransferableForOwner(instance) : (instance ?? null);
+        });
 
         continue;
       }
@@ -173,10 +180,11 @@ export class ExternalResourceResolver {
       const exportName = exportNode?.metadata.transferableName ?? (exportToken as ConstructorType).name;
 
       exportedNames.push(exportName);
-      global.exports(
-        `${options.name}:${exportName}`,
-        () => resolveVisibleInstance(this.graph, exportToken, node)?.instance ?? null,
-      );
+      global.exports(`${options.name}:${exportName}`, () => {
+        const instance = resolveVisibleInstance(this.graph, exportToken, node)?.instance;
+
+        return isTransferable(instance) ? wrapTransferableForOwner(instance) : (instance ?? null);
+      });
     }
 
     global.exports(options.name, () => exportedNames);

@@ -15,6 +15,8 @@ module.exports = {
     "^@core/(.*)$": "<rootDir>/src/core/$1",
     "^@shared$": "<rootDir>/src/shared/index.ts",
     "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    "^@invocation$": "<rootDir>/src/invocation/index.ts",
+    "^@invocation/(.*)$": "<rootDir>/src/invocation/$1",
     "^@logger$": "<rootDir>/src/logger/index.ts",
     "^@logger/(.*)$": "<rootDir>/src/logger/$1",
     "^@citizenfx$": "<rootDir>/src/citizenfx/index.ts",

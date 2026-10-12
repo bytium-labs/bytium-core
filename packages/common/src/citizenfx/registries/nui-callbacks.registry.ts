@@ -5,7 +5,7 @@ import { ConstructorType } from "@shared";
 import { serializeError } from "@citizenfx/utils/error-serialization.utils";
 
 export class NUICallbacksRegistry {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
 
   registerNUICallback(

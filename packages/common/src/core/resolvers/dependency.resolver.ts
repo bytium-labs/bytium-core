@@ -26,7 +26,7 @@ import { MODULE_REF_OWNER } from "@shared/consts/module-ref-owner.const";
 import { Logger } from "@logger";
 
 export class DependencyResolver {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #initFiredEntries = new Set<InstanceEntryModel>();
   #currentResolveSession: Set<InstanceEntryModel> | null = null;
   readonly #placeholder: CircularDependencyResolver;

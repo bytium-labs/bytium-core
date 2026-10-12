@@ -1,5 +1,6 @@
 import { Injectable } from "@core/decorators/injectable.decorator";
 import { CallbacksService } from "@citizenfx/services/callbacks.service";
+import { appendCorrelationEnvelope } from "@citizenfx/utils/correlation-envelope.utils";
 
 /**
  * Event bus service for emitting and listening to events. It also provides methods for invoking callbacks.
@@ -9,13 +10,14 @@ export class EventBusService {
   constructor(private readonly callbacksService: CallbacksService) {}
 
   /**
-   * Emits an event; handlers subscribe with \@OnEvent.
+   * Emits an event; handlers subscribe with \@OnEvent. Emitted inside a handler invocation, the event
+   * carries that invocation's `correlationId`, inherited transparently by the receiving \@OnEvent handlers.
    *
    * @param name Event name.
    * @param args Arguments forwarded to the handlers.
    */
   emit(name: string, ...args: any[]): void {
-    emit(name, ...args);
+    emit(name, ...appendCorrelationEnvelope(args));
   }
 
   /**

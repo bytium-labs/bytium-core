@@ -7,7 +7,7 @@ import { ConstructorType } from "@shared";
 import { serializeError } from "@citizenfx/utils/error-serialization.utils";
 
 export class CallbacksRegistry {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
 
   registerCallback(
@@ -18,15 +18,21 @@ export class CallbacksRegistry {
     handlerInvoker: HandlerInvoker,
   ): void {
     on(`__bytium_callbackCall:${options.name}`, async (responseIdentifier: string, ...args: any[]) => {
-      try {
-        const context = { type: "CALLBACK", provider: instance, methodName, args };
-        const result = await handlerInvoker.invoke(context);
+      const context = { type: "CALLBACK", provider: instance, methodName, args };
 
-        emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, result);
-      } catch (err) {
-        this.#logger.error(`Error while handling @Callback on method ${methodName} in provider ${provider.name}:`, err);
-        emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, serializeError(err));
-      }
+      await handlerInvoker.runCorrelated(context, async () => {
+        try {
+          const result = await handlerInvoker.invoke(context);
+
+          emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, result);
+        } catch (err) {
+          this.#logger.error(
+            `Error while handling @Callback on method ${methodName} in provider ${provider.name}:`,
+            err,
+          );
+          emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, serializeError(err));
+        }
+      });
     });
   }
 
@@ -39,29 +45,31 @@ export class CallbacksRegistry {
   ): void {
     onNet(`__bytium_netCallbackCall:${options.name}`, async (responseIdentifier: string, ...args: any[]) => {
       const source = global.source;
+      const context = this.#isCitizenFXServer
+        ? { type: "NET_CALLBACK", provider: instance, methodName, source, args }
+        : { type: "NET_CALLBACK", provider: instance, methodName, args };
 
-      try {
-        const context = this.#isCitizenFXServer
-          ? { type: "NET_CALLBACK", provider: instance, methodName, source, args }
-          : { type: "NET_CALLBACK", provider: instance, methodName, args };
-        const result = await handlerInvoker.invoke(context);
+      await handlerInvoker.runCorrelated(context, async () => {
+        try {
+          const result = await handlerInvoker.invoke(context);
 
-        emitNet(
-          `__bytium_netCallbackResponse:${options.name}`,
-          ...(this.#isCitizenFXServer ? [source, responseIdentifier, result] : [responseIdentifier, result]),
-        );
-      } catch (err) {
-        this.#logger.error(
-          `Error while handling @NetCallback on method ${methodName} in provider ${provider.name}:`,
-          err,
-        );
-        emitNet(
-          `__bytium_netCallbackResponse:${options.name}`,
-          ...(this.#isCitizenFXServer
-            ? [source, responseIdentifier, serializeError(err)]
-            : [responseIdentifier, serializeError(err)]),
-        );
-      }
+          emitNet(
+            `__bytium_netCallbackResponse:${options.name}`,
+            ...(this.#isCitizenFXServer ? [source, responseIdentifier, result] : [responseIdentifier, result]),
+          );
+        } catch (err) {
+          this.#logger.error(
+            `Error while handling @NetCallback on method ${methodName} in provider ${provider.name}:`,
+            err,
+          );
+          emitNet(
+            `__bytium_netCallbackResponse:${options.name}`,
+            ...(this.#isCitizenFXServer
+              ? [source, responseIdentifier, serializeError(err)]
+              : [responseIdentifier, serializeError(err)]),
+          );
+        }
+      });
     });
   }
 }

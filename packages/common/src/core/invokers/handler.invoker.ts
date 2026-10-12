@@ -3,6 +3,8 @@ import { ForbiddenException } from "@core/exceptions/forbidden.exception";
 import { HandlerPipeline } from "@core/interfaces/handler-pipeline.interface";
 import { ParamDecoratorEntryInterface } from "@core/interfaces/param-decorator-entry.interface";
 import { AnyExecutionContext } from "@core/types/any-execution-context.type";
+import { InvocationContextInterface } from "@invocation/interfaces/invocation-context.interface";
+import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
 import { BytiumMetadataEnum } from "@shared";
 
 /**
@@ -38,8 +40,33 @@ export class HandlerInvoker {
     pipelinesByMethod.set(methodName, pipeline);
   }
 
+  /**
+   * Runs a boundary callback (the handler invocation together with its error handling) inside the
+   * invocation context, so boundary error logs carry the same correlationId as the handler's own logs.
+   */
+  runCorrelated<T>(context: AnyExecutionContext, callback: () => T): T {
+    return invocationContextManagerInstance.run(() => {
+      const invocationContext = this.#invocationContextFor(context);
+
+      context.correlationId = invocationContext.correlationId;
+
+      return invocationContext;
+    }, callback);
+  }
+
   /** Runs the handler for an execution context and returns its result. */
-  async invoke<TReturn = unknown>(context: AnyExecutionContext): Promise<TReturn> {
+  invoke<TReturn = unknown>(context: AnyExecutionContext): Promise<TReturn> {
+    if (this.#isInsideOwnContext(context)) {
+      return this.#invoke<TReturn>(context);
+    }
+
+    return invocationContextManagerInstance.run(
+      () => this.#invocationContextFor(context),
+      () => this.#invoke<TReturn>(context),
+    );
+  }
+
+  async #invoke<TReturn = unknown>(context: AnyExecutionContext): Promise<TReturn> {
     const pipeline =
       this.#pipelines.get(context.provider)?.get(context.methodName) ??
       this.#classPipelines.get(context.provider.constructor)?.get(context.methodName);
@@ -109,6 +136,17 @@ export class HandlerInvoker {
    * synchronous here - anything returning a promise throws, since it would break the same-task guarantee.
    */
   invokeSync<TReturn = unknown>(context: AnyExecutionContext): TReturn {
+    if (this.#isInsideOwnContext(context)) {
+      return this.#invokeSync<TReturn>(context);
+    }
+
+    return invocationContextManagerInstance.run(
+      () => this.#invocationContextFor(context),
+      () => this.#invokeSync<TReturn>(context),
+    );
+  }
+
+  #invokeSync<TReturn = unknown>(context: AnyExecutionContext): TReturn {
     // FiveM for GTA V Enhanced workaround - synchronous deferrals / CancelEvent
     const pipeline =
       this.#pipelines.get(context.provider)?.get(context.methodName) ??
@@ -172,6 +210,24 @@ export class HandlerInvoker {
     const method = (context.provider as Record<string, (...args: unknown[]) => unknown>)[context.methodName];
 
     return method.apply(context.provider, args) as TReturn;
+  }
+
+  #isInsideOwnContext(context: AnyExecutionContext): boolean {
+    return (
+      context.correlationId !== undefined &&
+      invocationContextManagerInstance.getContext()?.correlationId === context.correlationId
+    );
+  }
+
+  #invocationContextFor(context: AnyExecutionContext): InvocationContextInterface {
+    const source = Reflect.get(context, "source") as unknown;
+
+    return {
+      correlationId: context.correlationId ?? crypto.randomUUID(),
+      type: context.type,
+      handler: `${context.provider.constructor.name}.${context.methodName}`,
+      ...(typeof source === "number" ? { source } : {}),
+    };
   }
 
   #isThenable(value: unknown): value is Promise<unknown> {

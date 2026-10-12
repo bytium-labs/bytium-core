@@ -298,6 +298,40 @@ describe("External resources", () => {
       expect(dependentProviderAInstance.remote.greet()).toBe("hello from remote");
     });
 
+    it("should inject a plain non-Transferable external provider unwrapped", async () => {
+      const remoteProviderAInstance = { greet: () => "hello from remote" };
+
+      mockRemoteBytiumResource("remote-resource", {
+        modules: { remoteModule: ["RemoteProviderA"] },
+        providers: { "remoteModule:RemoteProviderA": () => remoteProviderAInstance },
+      });
+
+      @Injectable()
+      class DependentProviderA {
+        constructor(@Inject("remote-resource:remoteModule:RemoteProviderA") public remote: unknown) {}
+      }
+
+      @BytiumResourceModule({
+        name: "testModule",
+        imports: ["remote-resource:remoteModule"],
+        providers: [DependentProviderA],
+      })
+      class TestModule {}
+
+      @BytiumResource({
+        imports: ["remote-resource"],
+        modules: [TestModule],
+      })
+      class TestResource {}
+
+      await dependencyManager.resolve(TestResource);
+
+      const dependentProviderAInstance = dependencyGraph.getNode(DependentProviderA)?.instances[0]
+        ?.instance as DependentProviderA;
+
+      expect(dependentProviderAInstance.remote).toBe(remoteProviderAInstance);
+    });
+
     it("should throw when the remote module does not export the requested provider", async () => {
       mockRemoteBytiumResource("remote-resource", {
         modules: { remoteModule: ["RemoteProviderA"] },
@@ -363,6 +397,68 @@ describe("External resources", () => {
       class TestResource {}
 
       await expect(dependencyManager.resolve(TestResource)).rejects.toThrow(WrongDependencyTypeException);
+    });
+
+    it("should export a truthy primitive useValue provider as-is", async () => {
+      @BytiumResourceModule({
+        name: "testModule",
+        providers: [{ provide: "configValue", useValue: "plain-string-value" }],
+        crossResourceExports: ["configValue"],
+      })
+      class TestModule {}
+
+      @BytiumResource({
+        modules: [TestModule],
+      })
+      class TestResource {}
+
+      await dependencyManager.resolve(TestResource);
+
+      const remoteProviderFactory = global.exports["testModule:configValue"] as unknown as () => unknown;
+
+      expect(remoteProviderFactory()).toBe("plain-string-value");
+    });
+
+    it("should export a plain non-Transferable useValue object unwrapped", async () => {
+      const configValue = { maxPlayers: 32 };
+
+      @BytiumResourceModule({
+        name: "testModule",
+        providers: [{ provide: "configValue", useValue: configValue }],
+        crossResourceExports: ["configValue"],
+      })
+      class TestModule {}
+
+      @BytiumResource({
+        modules: [TestModule],
+      })
+      class TestResource {}
+
+      await dependencyManager.resolve(TestResource);
+
+      const remoteProviderFactory = global.exports["testModule:configValue"] as unknown as () => unknown;
+
+      expect(remoteProviderFactory()).toBe(configValue);
+    });
+
+    it("should export a falsy useValue provider as-is", async () => {
+      @BytiumResourceModule({
+        name: "testModule",
+        providers: [{ provide: "configValue", useValue: 0 }],
+        crossResourceExports: ["configValue"],
+      })
+      class TestModule {}
+
+      @BytiumResource({
+        modules: [TestModule],
+      })
+      class TestResource {}
+
+      await dependencyManager.resolve(TestResource);
+
+      const remoteProviderFactory = global.exports["testModule:configValue"] as unknown as () => unknown;
+
+      expect(remoteProviderFactory()).toBe(0);
     });
 
     it("should register module and provider names on global.exports when @Transferable is present", async () => {

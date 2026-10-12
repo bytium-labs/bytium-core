@@ -7,8 +7,21 @@ import { resolveVisibleInstance } from "@core/utils/scope-lookup.utils";
 import { AnyExecutionContext } from "@core/types/any-execution-context.type";
 import { GraphTokenType } from "@core/types/graph-token.type";
 import { BytiumMetadataEnum, ConstructorType } from "@shared";
+import { InvocationContextInterface } from "@invocation/interfaces/invocation-context.interface";
+import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
 
 describe("HandlerInvoker", () => {
+  let originalIsDuplicityVersion: unknown;
+
+  beforeAll(() => {
+    originalIsDuplicityVersion = (global as any).IsDuplicityVersion;
+    (global as any).IsDuplicityVersion = () => true;
+  });
+
+  afterAll(() => {
+    (global as any).IsDuplicityVersion = originalIsDuplicityVersion;
+  });
+
   const stampParamDecorators = (
     target: ConstructorType,
     methodName: string,
@@ -513,6 +526,181 @@ describe("HandlerInvoker", () => {
       await expect(
         handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" })),
       ).rejects.toThrow(UnhandledException);
+    });
+  });
+  describe("invocation context", () => {
+    it("should expose the invocation context to the handler across an await", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        contextBeforeAwait: InvocationContextInterface | undefined;
+        contextAfterAwait: InvocationContextInterface | undefined;
+
+        async handle() {
+          this.contextBeforeAwait = invocationContextManagerInstance.getContext();
+
+          await new Promise((resolve) => setTimeout(resolve, 5));
+
+          this.contextAfterAwait = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command", source: 42 }));
+
+      expect(dependentProviderAInstance.contextBeforeAwait).toBeDefined();
+      expect(dependentProviderAInstance.contextBeforeAwait?.type).toBe("command");
+      expect(dependentProviderAInstance.contextBeforeAwait?.handler).toBe("DependentProviderA.handle");
+      expect(dependentProviderAInstance.contextBeforeAwait?.source).toBe(42);
+      expect(dependentProviderAInstance.contextBeforeAwait?.correlationId).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(dependentProviderAInstance.contextAfterAwait).toBe(dependentProviderAInstance.contextBeforeAwait);
+    });
+
+    it("should omit the source when the execution context has none", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "cron" }));
+
+      expect(dependentProviderAInstance.context?.source).toBeUndefined();
+    });
+
+    it("should inherit the correlationId provided by the execution context", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(
+        buildContext(dependentProviderAInstance, {
+          type: "ON_EVENT",
+          correlationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f",
+        }),
+      );
+
+      expect(dependentProviderAInstance.context?.correlationId).toBe("0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f");
+    });
+
+    it("should give every invocation its own correlationId", async () => {
+      const handlerInvoker = new HandlerInvoker();
+      const seenIds: (string | undefined)[] = [];
+
+      class DependentProviderA {
+        handle() {
+          seenIds.push(invocationContextManagerInstance.getContext()?.correlationId);
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" }));
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" }));
+
+      expect(seenIds[0]).toBeDefined();
+      expect(seenIds[1]).toBeDefined();
+      expect(seenIds[0]).not.toBe(seenIds[1]);
+    });
+
+    it("should leave no invocation context outside the invocation", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        handle() {}
+      }
+
+      await handlerInvoker.invoke(buildContext(new DependentProviderA(), { type: "command" }));
+
+      expect(invocationContextManagerInstance.getContext()).toBeUndefined();
+    });
+
+    it("should reuse the boundary's invocation context instead of opening a nested one", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+      const executionContext = buildContext(dependentProviderAInstance, { type: "command" });
+
+      await handlerInvoker.runCorrelated(executionContext, async () => {
+        const boundaryContext = invocationContextManagerInstance.getContext();
+
+        await handlerInvoker.invoke(executionContext);
+
+        expect(dependentProviderAInstance.context).toBe(boundaryContext);
+      });
+    });
+
+    it("should keep the invocation context in the boundary catch when the handler throws", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+
+          throw new Error("boundary boom");
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+      const executionContext = buildContext(dependentProviderAInstance, { type: "command" });
+      let catchContext: InvocationContextInterface | undefined;
+
+      await handlerInvoker.runCorrelated(executionContext, async () => {
+        try {
+          await handlerInvoker.invoke(executionContext);
+        } catch {
+          catchContext = invocationContextManagerInstance.getContext();
+        }
+      });
+
+      expect(catchContext).toBeDefined();
+      expect(catchContext?.correlationId).toBe(dependentProviderAInstance.context?.correlationId);
+    });
+
+    it("should expose the invocation context in sync mode", () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      handlerInvoker.invokeSync(buildContext(dependentProviderAInstance, { type: "event", source: 7 }));
+
+      expect(dependentProviderAInstance.context?.handler).toBe("DependentProviderA.handle");
+      expect(dependentProviderAInstance.context?.source).toBe(7);
     });
   });
 });

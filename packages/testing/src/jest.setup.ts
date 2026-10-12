@@ -23,6 +23,7 @@ const exportsStore: Record<string, any> = {};
 
 (global as any).IsDuplicityVersion = jest.fn(() => false);
 (global as any).GetCurrentResourceName = jest.fn(() => "test-resource");
+(global as any).GetInvokingResource = jest.fn(() => "invoking-resource");
 (global as any).GetResourceState = jest.fn(() => "started");
 (global as any).GetConvar = jest.fn((_key: string, defaultValue: string) => defaultValue);
 (global as any).GetConvarInt = jest.fn((_key: string, defaultValue: number) => defaultValue);

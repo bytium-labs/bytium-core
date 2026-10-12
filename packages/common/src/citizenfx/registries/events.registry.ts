@@ -1,3 +1,4 @@
+import { extractCorrelationEnvelope } from "@citizenfx/utils/correlation-envelope.utils";
 import { OnClientResourceStartOptions } from "@citizenfx/decorators/client/on-client-resource-start.decorator";
 import { OnClientResourceStopOptions } from "@citizenfx/decorators/client/on-client-resource-stop.decorator";
 import { OnConsoleOutputOptions } from "@citizenfx/decorators/server/on-console-output.decorator";
@@ -16,7 +17,7 @@ import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
 
 export class EventsRegistry {
-  readonly #logger = new Logger("bytium");
+  readonly #logger = new Logger("bytium-core");
   readonly #isCitizenFXServer = IsDuplicityVersion();
 
   /**
@@ -34,19 +35,21 @@ export class EventsRegistry {
     context: AnyExecutionContext,
     errorLabel: string,
   ): void {
-    if (sync) {
-      try {
-        const result = handlerInvoker.invokeSync(context);
+    handlerInvoker.runCorrelated(context, () => {
+      if (sync) {
+        try {
+          const result = handlerInvoker.invokeSync(context);
 
-        Promise.resolve(result).catch((err) => this.#logger.error(errorLabel, err));
-      } catch (err) {
-        this.#logger.error(errorLabel, err);
+          Promise.resolve(result).catch((err) => this.#logger.error(errorLabel, err));
+        } catch (err) {
+          this.#logger.error(errorLabel, err);
+        }
+
+        return;
       }
 
-      return;
-    }
-
-    handlerInvoker.invoke(context).catch((err) => this.#logger.error(errorLabel, err));
+      handlerInvoker.invoke(context).catch((err) => this.#logger.error(errorLabel, err));
+    });
   }
 
   registerClientResourceStartEventListener(
@@ -162,10 +165,11 @@ export class EventsRegistry {
     provider: ConstructorType,
     handlerInvoker: HandlerInvoker,
   ): void {
-    on(options.name, (...args: any[]) => {
+    on(options.name, (...rawArgs: any[]) => {
       const source = global.source;
+      const { args, correlationId } = extractCorrelationEnvelope(rawArgs);
       const context = this.#isCitizenFXServer
-        ? { type: "ON_EVENT", provider: instance, methodName, source, args }
+        ? { type: "ON_EVENT", provider: instance, methodName, source, args, correlationId }
         : { type: "ON_EVENT", provider: instance, methodName, args };
 
       this.#runHandler(
@@ -205,10 +209,19 @@ export class EventsRegistry {
     provider: ConstructorType,
     handlerInvoker: HandlerInvoker,
   ): void {
-    onNet(options.name, (...args: any[]) => {
+    onNet(options.name, (...rawArgs: any[]) => {
       const source = global.source;
+      const { args, correlationId } = extractCorrelationEnvelope(rawArgs);
       const context = this.#isCitizenFXServer
-        ? { type: "ON_NET_EVENT", provider: instance, methodName, source, args }
+        ? // a correlationId supplied by a player is untrusted; adopt it only for local emits
+          {
+            type: "ON_NET_EVENT",
+            provider: instance,
+            methodName,
+            source,
+            args,
+            correlationId: Number(source) > 0 ? undefined : correlationId,
+          }
         : { type: "ON_NET_EVENT", provider: instance, methodName, args };
 
       this.#runHandler(
