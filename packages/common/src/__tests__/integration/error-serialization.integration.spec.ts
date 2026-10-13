@@ -137,6 +137,22 @@ describe("serializeError", () => {
       expect(Reflect.get(deserialized as Error, "code")).toBe("ENOENT");
     });
 
+    it("should never serialize the cause in production", () => {
+      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new Error("db exploded") });
+      const { __bytiumError: payload } = serializeError(wrapped);
+
+      expect(JSON.stringify(payload)).not.toContain("db exploded");
+    });
+
+    it("should include the cause chain in dev mode", () => {
+      enableDevMode();
+
+      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new TypeError("db exploded") });
+      const { __bytiumError: payload } = serializeError(wrapped);
+
+      expect(payload.cause).toEqual(expect.objectContaining({ name: "TypeError", message: "db exploded" }));
+    });
+
     it("should keep a serialized BytiumException identity across a second boundary", () => {
       const once = deserializeError(serializeError(new BytiumException("denied", 403)));
       const twice = deserializeError(serializeError(once));

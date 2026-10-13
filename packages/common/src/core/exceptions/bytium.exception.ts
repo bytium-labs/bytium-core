@@ -10,8 +10,9 @@ export class BytiumException extends Error {
     message: string,
     public readonly code?: string | number,
     public readonly errors?: Record<string, string[]>,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
 
     this.name = "BytiumException";
   }

@@ -34,12 +34,16 @@ export function serializeError(error: Error | unknown): SerializedErrorInterface
 function serializeVerbose(error: Error | unknown): SerializedErrorInterface {
   if (error instanceof Error) {
     const additionalProps = Object.getOwnPropertyNames(error).reduce<Record<string, unknown>>((acc, key) => {
-      if (!["name", "message", "stack"].includes(key)) {
+      if (!["name", "message", "stack", "cause"].includes(key)) {
         acc[key] = Reflect.get(error, key);
       }
 
       return acc;
     }, {});
+    const cause =
+      error.cause instanceof Error
+        ? { cause: { name: error.cause.name, message: error.cause.message, stack: error.cause.stack } }
+        : {};
 
     return {
       __bytiumError: {
@@ -48,6 +52,7 @@ function serializeVerbose(error: Error | unknown): SerializedErrorInterface {
         name: error.name,
         message: error.message,
         stack: error.stack,
+        ...cause,
         ...additionalProps,
       },
     };

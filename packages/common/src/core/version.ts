@@ -1,1 +1,1 @@
-export const BYTIUM_VERSION = "1.1.0";
+export const BYTIUM_VERSION = "1.2.0";

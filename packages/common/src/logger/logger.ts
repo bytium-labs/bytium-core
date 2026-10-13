@@ -68,7 +68,12 @@ export class Logger {
       return;
     }
 
-    console.log(`${color}[${this.name}] ${message}`, ...args, "^7");
+    // the FiveM console formatter does not render Error.cause, so surface it explicitly
+    const prettyArgs = args.flatMap((arg) =>
+      arg instanceof Error && arg.cause instanceof Error ? [arg, "\nCaused by:", arg.cause] : [arg],
+    );
+
+    console.log(`${color}[${this.name}] ${message}`, ...prettyArgs, "^7");
   }
 
   #jsonEntry(level: LogLevelEnum, message: string, args: unknown[]): Record<string, unknown> {
@@ -85,8 +90,14 @@ export class Logger {
     for (const arg of args) {
       if (arg instanceof Error) {
         if (entry.error === undefined) {
-          entry.error = { name: arg.name, message: arg.message };
-          entry.stack = arg.stack;
+          const cause = arg.cause instanceof Error ? arg.cause : undefined;
+
+          entry.error = {
+            name: arg.name,
+            message: arg.message,
+            ...(cause ? { cause: { name: cause.name, message: cause.message } } : {}),
+          };
+          entry.stack = cause?.stack ? `${arg.stack}\nCaused by: ${cause.stack}` : arg.stack;
 
           continue;
         }

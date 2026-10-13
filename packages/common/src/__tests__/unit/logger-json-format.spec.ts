@@ -66,6 +66,23 @@ describe("Logger json format", () => {
     expect(entry.payload).toEqual([{ principal: "group.admin" }]);
   });
 
+  it("should decompose the error's cause into error.cause and chain its stack", () => {
+    withFormat("json", ({ Logger }) => {
+      const original = new TypeError("the real reason");
+      const wrapper = new Error("contextful wrapper", { cause: original });
+
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", wrapper);
+    });
+
+    const entry = lastLine();
+    const error = entry.error as Record<string, unknown>;
+
+    expect(error.cause).toEqual({ name: "TypeError", message: "the real reason" });
+
+    expect(entry.stack).toContain("contextful wrapper");
+    expect(entry.stack).toContain("Caused by: TypeError: the real reason");
+  });
+
   it("should keep additional errors in the payload in their full shape", () => {
     withFormat("json", ({ Logger }) => {
       new Logger("test", [LogLevelEnum.ERROR]).error("failed twice", new TypeError("first"), new RangeError("second"));
@@ -143,6 +160,19 @@ describe("Logger json format", () => {
     expect(entry.type).toBe("COMMAND");
     expect(entry.handler).toBe("TestCommand.run");
     expect(entry.source).toBe(42);
+  });
+
+  it("should append the cause explicitly in pretty mode", () => {
+    withFormat(undefined, ({ Logger }) => {
+      const original = new TypeError("the real reason");
+
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", new Error("wrapper", { cause: original }));
+    });
+
+    const call = logSpy.mock.calls[0];
+
+    expect(call[2]).toBe("\nCaused by:");
+    expect(call[3]).toBeInstanceOf(TypeError);
   });
 
   it("should keep the pretty output unchanged when the format convar is unset", () => {
