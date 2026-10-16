@@ -1,6 +1,6 @@
 {
   "name": "bytium-core",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Modern TypeScript framework for FiveM Enhanced with dependency injection, modules, decorator-driven handling of the FiveM runtime (commands, events, ticks, NUI, HTTP), and cross-resource communication.",
   "repository": {

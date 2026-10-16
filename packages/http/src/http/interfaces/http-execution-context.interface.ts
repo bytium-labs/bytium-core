@@ -19,4 +19,7 @@ export interface HttpExecutionContext {
 
   /** The outgoing response. */
   response: HttpResponse;
+
+  /** The access lines carry the transport-shaped request, so the positional args capture is skipped. */
+  skipArgsLog: true;
 }

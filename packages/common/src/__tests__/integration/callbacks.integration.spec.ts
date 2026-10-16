@@ -2,7 +2,7 @@ import "reflect-metadata";
 import "../restore-timers";
 import { BytiumException } from "@core";
 import { CallbacksService } from "@citizenfx/services/callbacks.service";
-import { serializeError } from "@citizenfx/utils/error-serialization.utils";
+import { ErrorSerializer } from "@core/serializers/error.serializer";
 
 describe("CallbacksService", () => {
   let originalEmit: typeof emit;
@@ -49,7 +49,7 @@ describe("CallbacksService", () => {
     const callbacksServiceInstance = new CallbacksService();
     const invocationPromise = callbacksServiceInstance.invoke<unknown>("failingHandler");
     const [, responseIdentifier] = lastEmittedArgs as [string, string];
-    const serializedError = serializeError(new Error("handler exploded"));
+    const serializedError = ErrorSerializer.serialize(new Error("handler exploded"));
 
     triggerResponse("__bytium_callbackResponse:failingHandler", responseIdentifier, serializedError);
 
@@ -60,7 +60,7 @@ describe("CallbacksService", () => {
     const callbacksServiceInstance = new CallbacksService();
     const invocationPromise = callbacksServiceInstance.invoke<unknown>("failingHandler");
     const [, responseIdentifier] = lastEmittedArgs as [string, string];
-    const serializedError = serializeError(new BytiumException("ace already exists", "ACE_ALREADY_EXISTS"));
+    const serializedError = ErrorSerializer.serialize(new BytiumException("ace already exists", "ACE_ALREADY_EXISTS"));
 
     triggerResponse("__bytium_callbackResponse:failingHandler", responseIdentifier, serializedError);
 

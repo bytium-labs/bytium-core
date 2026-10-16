@@ -19,6 +19,7 @@ export { Tick, TickOptions } from "@citizenfx/decorators/shared/tick.decorator";
 
 export { Args } from "@citizenfx/decorators/shared/args.decorator";
 export { Arg } from "@citizenfx/decorators/shared/arg.decorator";
+export { Sensitive } from "@citizenfx/decorators/shared/sensitive.decorator";
 export { RawCommand } from "@citizenfx/decorators/shared/raw-command.decorator";
 export { Source } from "@citizenfx/decorators/shared/source.decorator";
 export { RequireAce } from "@citizenfx/decorators/shared/require-ace.decorator";

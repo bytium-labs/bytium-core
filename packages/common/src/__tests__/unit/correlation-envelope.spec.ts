@@ -1,16 +1,13 @@
-import { appendCorrelationEnvelope, extractCorrelationEnvelope } from "@citizenfx/utils/correlation-envelope.utils";
+import { appendCorrelationEnvelope, extractCorrelationEnvelope } from "@invocation/utils/correlation-envelope.utils";
 import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
 
 describe("correlation envelope", () => {
-  let originalIsDuplicityVersion: unknown;
-
   beforeAll(() => {
-    originalIsDuplicityVersion = (global as any).IsDuplicityVersion;
-    (global as any).IsDuplicityVersion = () => true;
+    jest.spyOn(globalThis, "IsDuplicityVersion").mockReturnValue(true);
   });
 
   afterAll(() => {
-    (global as any).IsDuplicityVersion = originalIsDuplicityVersion;
+    jest.restoreAllMocks();
   });
 
   it("should append the envelope as the last argument when an invocation context is active", () => {

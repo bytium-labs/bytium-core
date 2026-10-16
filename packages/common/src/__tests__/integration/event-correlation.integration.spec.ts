@@ -9,7 +9,6 @@ import { BytiumMetadataEnum, ConstructorType } from "@shared";
 
 describe("event correlation envelope", () => {
   const envelope = { __bytiumCorrelationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f" };
-  let originalIsDuplicityVersion: unknown;
   let capturedOnListener: ((...args: unknown[]) => void) | undefined;
   let capturedOnNetListener: ((...args: unknown[]) => void) | undefined;
   const stampArgsDecorator = (target: ConstructorType, methodName: string): void => {
@@ -34,27 +33,21 @@ describe("event correlation envelope", () => {
   }
 
   beforeAll(() => {
-    originalIsDuplicityVersion = (global as any).IsDuplicityVersion;
-    (global as any).IsDuplicityVersion = () => true;
+    jest.spyOn(globalThis, "IsDuplicityVersion").mockReturnValue(true);
+    jest.spyOn(globalThis, "on").mockImplementation((_name, listener) => {
+      capturedOnListener = listener as (...args: unknown[]) => void;
+    });
+    jest.spyOn(globalThis, "onNet").mockImplementation((_name, listener) => {
+      capturedOnNetListener = listener as (...args: unknown[]) => void;
+    });
   });
 
   afterAll(() => {
-    (global as any).IsDuplicityVersion = originalIsDuplicityVersion;
+    jest.restoreAllMocks();
   });
 
   beforeEach(() => {
-    (global as any).on = (_name: string, listener: (...args: unknown[]) => void) => {
-      capturedOnListener = listener;
-    };
-    (global as any).onNet = (_name: string, listener: (...args: unknown[]) => void) => {
-      capturedOnNetListener = listener;
-    };
     stampArgsDecorator(DependentProviderA, "handle");
-  });
-
-  afterEach(() => {
-    (global as any).on = () => {};
-    (global as any).onNet = () => {};
   });
 
   it("should strip the envelope and inherit the correlationId in an @OnEvent handler", async () => {
@@ -104,10 +97,10 @@ describe("event correlation envelope", () => {
       new HandlerInvoker(),
     );
 
-    (global as any).source = 42;
+    globalThis.source = 42;
     capturedOnNetListener!(1, "two", envelope);
     await flush();
-    (global as any).source = 0;
+    globalThis.source = 0;
 
     expect(dependentProviderAInstance.receivedArgs).toEqual([1, "two"]);
     expect(dependentProviderAInstance.context?.correlationId).not.toBe("0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f");

@@ -11,11 +11,8 @@ import { ExternalDependencyUnavailableException } from "@core/exceptions/externa
 import { instanceOfForwardRefDependency } from "@core/interfaces/forward-ref-dependency.interface";
 import { parseExternalDependencyName } from "@core/utils/external-token.utils";
 import { getResourceExport } from "@core/utils/resource-export.utils";
-import {
-  isTransferable,
-  wrapTransferableForConsumer,
-  wrapTransferableForOwner,
-} from "@citizenfx/utils/transferable-marshaling.utils";
+import { instanceOfTransferable } from "@core/decorators/transferable.decorator";
+import { transferableMarshalerInstance } from "@core/marshalers/transferable.marshaler";
 import { ResourceStateEnum } from "@citizenfx/enums/resource-state.enum";
 import { ConstructorType, sleep } from "@shared";
 import { Logger } from "@logger";
@@ -147,7 +144,9 @@ export class ExternalResourceResolver {
     }
 
     const rawInstance = getExternalProvider();
-    const instance = isTransferable(rawInstance) ? wrapTransferableForConsumer(rawInstance) : rawInstance;
+    const instance = instanceOfTransferable(rawInstance)
+      ? transferableMarshalerInstance.wrapForConsumer(rawInstance)
+      : rawInstance;
     const entry = new InstanceEntryModel(instance, BytiumProviderScopeEnum.SINGLETON);
 
     this.addInstance(node, entry);
@@ -169,7 +168,9 @@ export class ExternalResourceResolver {
         global.exports(`${options.name}:${exported}`, () => {
           const instance = resolveVisibleInstance(this.graph, exported, node)?.instance;
 
-          return isTransferable(instance) ? wrapTransferableForOwner(instance) : (instance ?? null);
+          return instanceOfTransferable(instance)
+            ? transferableMarshalerInstance.wrapForOwner(instance)
+            : (instance ?? null);
         });
 
         continue;
@@ -183,7 +184,9 @@ export class ExternalResourceResolver {
       global.exports(`${options.name}:${exportName}`, () => {
         const instance = resolveVisibleInstance(this.graph, exportToken, node)?.instance;
 
-        return isTransferable(instance) ? wrapTransferableForOwner(instance) : (instance ?? null);
+        return instanceOfTransferable(instance)
+          ? transferableMarshalerInstance.wrapForOwner(instance)
+          : (instance ?? null);
       });
     }
 

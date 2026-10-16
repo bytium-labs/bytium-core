@@ -5,4 +5,5 @@ export interface BytiumExecutionContextBase {
   provider: object;
   methodName: string;
   correlationId?: string;
+  skipArgsLog?: boolean;
 }

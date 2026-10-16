@@ -1,8 +1,9 @@
 import { NUICallbackOptions } from "@citizenfx/decorators/client/nui-callback.decorator";
 import { HandlerInvoker } from "@core/invokers/handler.invoker";
+import { boundaryLogManagerInstance } from "@invocation/managers/boundary-log.manager";
 import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
-import { serializeError } from "@citizenfx/utils/error-serialization.utils";
+import { ErrorSerializer } from "@core/serializers/error.serializer";
 
 export class NUICallbacksRegistry {
   readonly #logger = new Logger("bytium-core");
@@ -26,16 +27,29 @@ export class NUICallbacksRegistry {
     try {
       RegisterNuiCallbackType(options.name);
       on(`__cfx_nui:${options.name}`, async (data: any, cb: (response: any) => void) => {
+        const boundaryLogged = boundaryLogManagerInstance.shouldLog("NUI_CALLBACK");
+
+        if (boundaryLogged) {
+          this.#logger.log(`Executing @NUICallback "${options.name}"`);
+        }
+
+        const startedAt = Date.now();
+
         try {
           const context = { type: "NUI_CALLBACK", provider: instance, methodName, data };
 
           cb(await handlerInvoker.invoke(context));
+
+          if (boundaryLogged) {
+            this.#logger.log(`@NUICallback "${options.name}" -> done (${Date.now() - startedAt}ms)`);
+          }
         } catch (err) {
           this.#logger.error(
             `Error while handling @NUICallback "${options.name}" on method ${methodName} in provider ${provider.name}:`,
             err,
           );
-          cb(serializeError(err));
+          cb(ErrorSerializer.serialize(err));
+          this.#logger.log(`@NUICallback "${options.name}" -> error (${Date.now() - startedAt}ms)`);
         }
       });
 

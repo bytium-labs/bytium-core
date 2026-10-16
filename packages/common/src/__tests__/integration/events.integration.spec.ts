@@ -6,23 +6,32 @@ class ProviderA {}
 
 describe("EventsRegistry environment guards", () => {
   const handlerInvoker = {} as HandlerInvoker;
-  let onMock: jest.Mock;
+  let isDuplicityVersionSpy: jest.SpyInstance<boolean, []>;
+  let onSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
   const buildRegistryFor = (isServer: boolean): EventsRegistry => {
-    (global as unknown as { IsDuplicityVersion: () => boolean }).IsDuplicityVersion = () => isServer;
+    isDuplicityVersionSpy.mockReturnValue(isServer);
 
     return new EventsRegistry();
   };
 
+  beforeAll(() => {
+    isDuplicityVersionSpy = jest.spyOn(globalThis, "IsDuplicityVersion");
+    onSpy = jest.spyOn(globalThis, "on");
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
-    onMock = jest.fn();
-    (global as unknown as { on: unknown }).on = onMock;
+    jest.clearAllMocks();
     warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
     warnSpy.mockRestore();
-    (global as unknown as { IsDuplicityVersion: () => boolean }).IsDuplicityVersion = () => false;
+    isDuplicityVersionSpy.mockReturnValue(false);
   });
 
   describe.each([
@@ -34,7 +43,7 @@ describe("EventsRegistry environment guards", () => {
 
       eventsRegistryInstance[method]({}, "handler", { name: "resourceA" } as never, ProviderA, handlerInvoker);
 
-      expect(onMock).toHaveBeenCalledWith(event, expect.any(Function));
+      expect(onSpy).toHaveBeenCalledWith(event, expect.any(Function));
 
       expect(warnSpy).not.toHaveBeenCalled();
     });
@@ -44,7 +53,7 @@ describe("EventsRegistry environment guards", () => {
 
       eventsRegistryInstance[method]({}, "handler", { name: "resourceA" } as never, ProviderA, handlerInvoker);
 
-      expect(onMock).not.toHaveBeenCalled();
+      expect(onSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -57,7 +66,7 @@ describe("EventsRegistry environment guards", () => {
 
       eventsRegistryInstance[method]({}, "handler", { name: "resourceA" } as never, ProviderA, handlerInvoker);
 
-      expect(onMock).toHaveBeenCalledWith(event, expect.any(Function));
+      expect(onSpy).toHaveBeenCalledWith(event, expect.any(Function));
 
       expect(warnSpy).not.toHaveBeenCalled();
     });
@@ -67,7 +76,7 @@ describe("EventsRegistry environment guards", () => {
 
       eventsRegistryInstance[method]({}, "handler", { name: "resourceA" } as never, ProviderA, handlerInvoker);
 
-      expect(onMock).not.toHaveBeenCalled();
+      expect(onSpy).not.toHaveBeenCalled();
     });
   });
 });

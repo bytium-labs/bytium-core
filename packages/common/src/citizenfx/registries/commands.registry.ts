@@ -7,6 +7,7 @@ import { CommandNotAllowedForPlayersException } from "@citizenfx/exceptions/comm
 import { CommandNameInvalidException } from "@citizenfx/exceptions/command-name-invalid.exception";
 import { CommandAlreadyRegisteredException } from "@citizenfx/exceptions/command-already-registered.exception";
 import { HandlerInvoker } from "@core/invokers/handler.invoker";
+import { boundaryLogManagerInstance } from "@invocation/managers/boundary-log.manager";
 import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
 
@@ -27,9 +28,9 @@ export class CommandsRegistry {
 
       await handlerInvoker.runCorrelated(context, async () => {
         try {
-          this.#logger.debug(
-            `Received command "${options.name}" from source "${source}" (typeof source: ${typeof source})`,
-          );
+          if (boundaryLogManagerInstance.shouldLog(context.type)) {
+            this.#logger.log(`Executing @Command "${options.name}"`);
+          }
 
           if (this.#isCitizenFXServer) {
             if (!(options as ServerCommandOptions).canBeUsedByServer && Number(source) <= 0) {

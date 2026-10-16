@@ -2,9 +2,12 @@ import { CallbackOptions } from "@citizenfx/decorators/shared/callback.decorator
 import { NetCallbackOptions as ServerNetCallbackOptions } from "@citizenfx/decorators/server/net-callback.decorator";
 import { NetCallbackOptions as ClientNetCallbackOptions } from "@citizenfx/decorators/client/net-callback.decorator";
 import { HandlerInvoker } from "@core/invokers/handler.invoker";
+import { InvocationContext } from "@invocation/contexts/invocation.context";
 import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
-import { serializeError } from "@citizenfx/utils/error-serialization.utils";
+import { ErrorSerializer } from "@core/serializers/error.serializer";
+import { boundaryLogManagerInstance } from "@invocation/managers/boundary-log.manager";
+import { extractCorrelationEnvelope } from "@invocation/utils/correlation-envelope.utils";
 
 export class CallbacksRegistry {
   readonly #logger = new Logger("bytium-core");
@@ -17,20 +20,32 @@ export class CallbacksRegistry {
     provider: ConstructorType,
     handlerInvoker: HandlerInvoker,
   ): void {
-    on(`__bytium_callbackCall:${options.name}`, async (responseIdentifier: string, ...args: any[]) => {
-      const context = { type: "CALLBACK", provider: instance, methodName, args };
+    on(`__bytium_callbackCall:${options.name}`, async (responseIdentifier: string, ...rawArgs: any[]) => {
+      const { args, correlationId } = extractCorrelationEnvelope(rawArgs);
+      const context = { type: "CALLBACK", provider: instance, methodName, args, correlationId };
 
       await handlerInvoker.runCorrelated(context, async () => {
+        if (boundaryLogManagerInstance.shouldLog(context.type)) {
+          this.#logger.log(`Executing @Callback "${options.name}"`);
+        }
+
+        const startedAt = Date.now();
+
         try {
           const result = await handlerInvoker.invoke(context);
 
           emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, result);
+
+          if (boundaryLogManagerInstance.shouldLog(context.type)) {
+            this.#logResponse(`@Callback "${options.name}"`, "done", startedAt);
+          }
         } catch (err) {
           this.#logger.error(
             `Error while handling @Callback on method ${methodName} in provider ${provider.name}:`,
             err,
           );
-          emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, serializeError(err));
+          emit(`__bytium_callbackResponse:${options.name}`, responseIdentifier, ErrorSerializer.serialize(err));
+          this.#logResponse(`@Callback "${options.name}"`, "error", startedAt);
         }
       });
     });
@@ -50,6 +65,12 @@ export class CallbacksRegistry {
         : { type: "NET_CALLBACK", provider: instance, methodName, args };
 
       await handlerInvoker.runCorrelated(context, async () => {
+        if (boundaryLogManagerInstance.shouldLog(context.type)) {
+          this.#logger.log(`Executing @NetCallback "${options.name}"`);
+        }
+
+        const startedAt = Date.now();
+
         try {
           const result = await handlerInvoker.invoke(context);
 
@@ -57,6 +78,10 @@ export class CallbacksRegistry {
             `__bytium_netCallbackResponse:${options.name}`,
             ...(this.#isCitizenFXServer ? [source, responseIdentifier, result] : [responseIdentifier, result]),
           );
+
+          if (boundaryLogManagerInstance.shouldLog(context.type)) {
+            this.#logResponse(`@NetCallback "${options.name}"`, "done", startedAt);
+          }
         } catch (err) {
           this.#logger.error(
             `Error while handling @NetCallback on method ${methodName} in provider ${provider.name}:`,
@@ -65,11 +90,20 @@ export class CallbacksRegistry {
           emitNet(
             `__bytium_netCallbackResponse:${options.name}`,
             ...(this.#isCitizenFXServer
-              ? [source, responseIdentifier, serializeError(err)]
-              : [responseIdentifier, serializeError(err)]),
+              ? [source, responseIdentifier, ErrorSerializer.serialize(err)]
+              : [responseIdentifier, ErrorSerializer.serialize(err)]),
           );
+          this.#logResponse(`@NetCallback "${options.name}"`, "error", startedAt);
         }
       });
     });
+  }
+
+  #logResponse(label: string, outcome: "done" | "error", startedAt: number): void {
+    const durationMs = Date.now() - startedAt;
+
+    InvocationContext.scoped({ response: { outcome, durationMs } }, () =>
+      this.#logger.log(`${label} -> ${outcome} (${durationMs}ms)`),
+    );
   }
 }

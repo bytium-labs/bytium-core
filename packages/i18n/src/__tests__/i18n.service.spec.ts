@@ -22,12 +22,15 @@ const createI18nService = (options: Partial<I18nModuleOptionsInterface> = {}): I
 };
 
 describe("I18nService", () => {
-  beforeEach(() => {
-    (global as unknown as { LoadResourceFile: (resource: string, path: string) => string | null }).LoadResourceFile = (
-      _resource,
-      path,
-    ) => catalogFiles[path] ?? null;
-    (global as unknown as { GetCurrentResourceName: () => string }).GetCurrentResourceName = () => "test-resource";
+  beforeAll(() => {
+    jest
+      .spyOn(globalThis, "LoadResourceFile")
+      .mockImplementation((_resource: string, path: string) => catalogFiles[path] ?? null);
+    jest.spyOn(globalThis, "GetCurrentResourceName").mockReturnValue("test-resource");
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   it("translates a key in the default locale and interpolates placeholders", () => {

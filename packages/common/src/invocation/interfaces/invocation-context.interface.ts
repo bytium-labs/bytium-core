@@ -16,4 +16,10 @@ export interface InvocationContextInterface {
 
   /** Name of the resource that called the Transferable method, for cross-resource invocations. */
   invokedBy?: string;
+
+  /** Framework transporter of the named field buckets spread top-level into every JSON log line. */
+  __bytiumMetadata?: Record<string, Record<string, unknown> | unknown[]>;
+
+  /** Framework transporter of the serialized handler args, attached to error lines and the ALL-mode Invoking line. */
+  __bytiumHandlerArgs?: unknown[];
 }

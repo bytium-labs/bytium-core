@@ -4,7 +4,7 @@ import { ParsedMultipart } from "@multipart/interfaces/parsed-multipart.interfac
 import { multipartCache } from "@multipart/multipart-cache";
 import { extractBoundary } from "@multipart/utils/extract-boundary.util";
 import { httpRequestOf } from "@multipart/utils/http-request-of.util";
-import { parseMultipart } from "@multipart/utils/parse-multipart.util";
+import { MultipartParser } from "@multipart/parsers/multipart.parser";
 
 /** Parses a `multipart/form-data` body so its files and fields can be read with `@UploadedFile(s)`/`@Field`. */
 @Injectable()
@@ -22,6 +22,6 @@ export class MultipartInterceptor implements Interceptor {
 
     if (!boundary || !(request.body instanceof ArrayBuffer)) return { fields: {}, files: [] };
 
-    return parseMultipart(request.body, boundary);
+    return MultipartParser.parse(request.body, boundary);
   }
 }

@@ -1,8 +1,8 @@
 import "reflect-metadata";
 import { BytiumException, ValidationException } from "@core";
-import { deserializeError, serializeError } from "@citizenfx/utils/error-serialization.utils";
+import { ErrorSerializer } from "@core/serializers/error.serializer";
 
-describe("serializeError", () => {
+describe("ErrorSerializer", () => {
   let originalGetConvar: typeof GetConvar;
 
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe("serializeError", () => {
   describe("in production (default)", () => {
     it("should pass a BytiumException's name, message and code through unchanged", () => {
       const bytiumExceptionInstance = new BytiumException("ace already exists", "ACE_ALREADY_EXISTS");
-      const { __bytiumError: payload } = serializeError(bytiumExceptionInstance);
+      const { __bytiumError: payload } = ErrorSerializer.serialize(bytiumExceptionInstance);
 
       expect(payload.__isErrorInstance).toBe(true);
       expect(payload.name).toBe("BytiumException");
@@ -33,7 +33,7 @@ describe("serializeError", () => {
       const bytiumExceptionInstance = new BytiumException("player not found", "INVALID_PLAYER");
 
       Reflect.set(bytiumExceptionInstance, "query", "SELECT * FROM players");
-      const { __bytiumError: payload } = serializeError(bytiumExceptionInstance);
+      const { __bytiumError: payload } = ErrorSerializer.serialize(bytiumExceptionInstance);
 
       expect(payload.stack).toBeUndefined();
       expect(payload.query).toBeUndefined();
@@ -41,7 +41,7 @@ describe("serializeError", () => {
 
     it("should include a ValidationException's per-field errors", () => {
       const validationExceptionInstance = new ValidationException({ name: ["required"], age: ["must be a number"] });
-      const { __bytiumError: payload } = serializeError(validationExceptionInstance);
+      const { __bytiumError: payload } = ErrorSerializer.serialize(validationExceptionInstance);
 
       expect(payload.name).toBe("ValidationException");
       expect(payload.message).toBe("Validation failed");
@@ -51,13 +51,13 @@ describe("serializeError", () => {
 
     it("should omit errors for a BytiumException that carries none", () => {
       const bytiumExceptionInstance = new BytiumException("player not found", "INVALID_PLAYER");
-      const { __bytiumError: payload } = serializeError(bytiumExceptionInstance);
+      const { __bytiumError: payload } = ErrorSerializer.serialize(bytiumExceptionInstance);
 
       expect(payload.errors).toBeUndefined();
     });
 
     it("should sanitize an unexpected error into a generic 500", () => {
-      const { __bytiumError: payload } = serializeError(new TypeError("cannot read property of undefined"));
+      const { __bytiumError: payload } = ErrorSerializer.serialize(new TypeError("cannot read property of undefined"));
 
       expect(payload.__isErrorInstance).toBe(true);
       expect(payload.name).toBe("InternalError");
@@ -67,11 +67,18 @@ describe("serializeError", () => {
     });
 
     it("should sanitize a thrown non-error value into a generic 500", () => {
-      const { __bytiumError: payload } = serializeError("raw secret string");
+      const { __bytiumError: payload } = ErrorSerializer.serialize("raw secret string");
 
       expect(payload.name).toBe("InternalError");
       expect(payload.message).toBe("Internal server error");
       expect(payload.code).toBe(500);
+    });
+
+    it("should never serialize the cause", () => {
+      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new Error("db exploded") });
+      const { __bytiumError: payload } = ErrorSerializer.serialize(wrapped);
+
+      expect(JSON.stringify(payload)).not.toContain("db exploded");
     });
   });
 
@@ -79,7 +86,7 @@ describe("serializeError", () => {
     beforeEach(() => enableDevMode());
 
     it("should expose an unexpected error's real name, message and stack", () => {
-      const { __bytiumError: payload } = serializeError(new TypeError("cannot read property of undefined"));
+      const { __bytiumError: payload } = ErrorSerializer.serialize(new TypeError("cannot read property of undefined"));
 
       expect(payload.__isErrorInstance).toBe(true);
       expect(payload.name).toBe("TypeError");
@@ -91,7 +98,7 @@ describe("serializeError", () => {
       const bytiumExceptionInstance = new BytiumException("player not found", "INVALID_PLAYER");
 
       Reflect.set(bytiumExceptionInstance, "query", "SELECT * FROM players");
-      const { __bytiumError: payload } = serializeError(bytiumExceptionInstance);
+      const { __bytiumError: payload } = ErrorSerializer.serialize(bytiumExceptionInstance);
 
       expect(payload.message).toBe("player not found");
       expect(payload.code).toBe("INVALID_PLAYER");
@@ -100,16 +107,26 @@ describe("serializeError", () => {
     });
 
     it("should pass a thrown non-error value through as its raw value", () => {
-      const { __bytiumError: payload } = serializeError("raw value");
+      const { __bytiumError: payload } = ErrorSerializer.serialize("raw value");
 
       expect(payload.__isErrorInstance).toBe(false);
       expect(payload.value).toBe("raw value");
     });
+
+    it("should include the cause chain", () => {
+      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new TypeError("db exploded") });
+      const { __bytiumError: payload } = ErrorSerializer.serialize(wrapped);
+
+      expect(payload.cause).toEqual(expect.objectContaining({ name: "TypeError", message: "db exploded" }));
+    });
   });
-  describe("deserializeError", () => {
+
+  describe("deserialize", () => {
     it("should rebuild a serialized BytiumException with its code and errors", () => {
-      const serialized = serializeError(new BytiumException("denied", 403, { principal: ["Principal is required."] }));
-      const deserialized = deserializeError(serialized);
+      const serialized = ErrorSerializer.serialize(
+        new BytiumException("denied", 403, { principal: ["Principal is required."] }),
+      );
+      const deserialized = ErrorSerializer.deserialize(serialized);
 
       expect(deserialized).toBeInstanceOf(BytiumException);
       expect((deserialized as BytiumException).code).toBe(403);
@@ -117,7 +134,7 @@ describe("serializeError", () => {
     });
 
     it("should rebuild the sanitized internal error as a BytiumException with code 500", () => {
-      const deserialized = deserializeError(serializeError(new TypeError("boom")));
+      const deserialized = ErrorSerializer.deserialize(ErrorSerializer.serialize(new TypeError("boom")));
 
       expect(deserialized).toBeInstanceOf(BytiumException);
       expect((deserialized as BytiumException).code).toBe(500);
@@ -130,32 +147,16 @@ describe("serializeError", () => {
 
       Reflect.set(systemError, "code", "ENOENT");
 
-      const deserialized = deserializeError(serializeError(systemError));
+      const deserialized = ErrorSerializer.deserialize(ErrorSerializer.serialize(systemError));
 
       expect(deserialized).toBeInstanceOf(Error);
       expect(deserialized).not.toBeInstanceOf(BytiumException);
       expect(Reflect.get(deserialized as Error, "code")).toBe("ENOENT");
     });
 
-    it("should never serialize the cause in production", () => {
-      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new Error("db exploded") });
-      const { __bytiumError: payload } = serializeError(wrapped);
-
-      expect(JSON.stringify(payload)).not.toContain("db exploded");
-    });
-
-    it("should include the cause chain in dev mode", () => {
-      enableDevMode();
-
-      const wrapped = new BytiumException("Failed to add ACE", 500, undefined, { cause: new TypeError("db exploded") });
-      const { __bytiumError: payload } = serializeError(wrapped);
-
-      expect(payload.cause).toEqual(expect.objectContaining({ name: "TypeError", message: "db exploded" }));
-    });
-
     it("should keep a serialized BytiumException identity across a second boundary", () => {
-      const once = deserializeError(serializeError(new BytiumException("denied", 403)));
-      const twice = deserializeError(serializeError(once));
+      const once = ErrorSerializer.deserialize(ErrorSerializer.serialize(new BytiumException("denied", 403)));
+      const twice = ErrorSerializer.deserialize(ErrorSerializer.serialize(once));
 
       expect(twice).toBeInstanceOf(BytiumException);
       expect((twice as BytiumException).code).toBe(403);

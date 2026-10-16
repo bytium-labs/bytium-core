@@ -6,15 +6,29 @@ import { ConfigService } from "@config/services/config.service";
 import { registerAs } from "@config/utils/register-as";
 
 describe("ConfigModule", () => {
+  let loadResourceFileSpy: jest.SpyInstance<string | null, [string, string]>;
+  let getConvarSpy: jest.SpyInstance<string, [string, string]>;
+  let getConvarIntSpy: jest.SpyInstance<number, [string, number]>;
+
+  beforeAll(() => {
+    loadResourceFileSpy = jest.spyOn(globalThis, "LoadResourceFile");
+    getConvarSpy = jest.spyOn(globalThis, "GetConvar");
+    getConvarIntSpy = jest.spyOn(globalThis, "GetConvarInt");
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
-    (global as any).LoadResourceFile = (_resource: string, _file: string) => "{}";
-    (global as any).GetConvar = (_key: string, defaultValue: string) => defaultValue;
-    (global as any).GetConvarInt = (_key: string, defaultValue: number) => defaultValue;
+    loadResourceFileSpy.mockImplementation((_resource: string, _file: string) => "{}");
+    getConvarSpy.mockImplementation((_key: string, defaultValue: string) => defaultValue);
+    getConvarIntSpy.mockImplementation((_key: string, defaultValue: number) => defaultValue);
   });
 
   describe("basic resolution", () => {
     it("should resolve ConfigService from forRoot() with default options", async () => {
-      (global as any).LoadResourceFile = () => JSON.stringify({ greeting: "hello" });
+      loadResourceFileSpy.mockImplementation(() => JSON.stringify({ greeting: "hello" }));
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [ConfigModule.forRoot()],
@@ -28,7 +42,7 @@ describe("ConfigModule", () => {
     });
 
     it("should return defaultValue for missing keys and undefined when no default supplied", async () => {
-      (global as any).LoadResourceFile = () => JSON.stringify({ present: 1 });
+      loadResourceFileSpy.mockImplementation(() => JSON.stringify({ present: 1 }));
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [ConfigModule.forRoot()],
@@ -43,7 +57,7 @@ describe("ConfigModule", () => {
     });
 
     it("should resolve dot-notation keys", async () => {
-      (global as any).LoadResourceFile = () => JSON.stringify({ database: { host: "localhost", port: 5432 } });
+      loadResourceFileSpy.mockImplementation(() => JSON.stringify({ database: { host: "localhost", port: 5432 } }));
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [ConfigModule.forRoot()],
@@ -58,7 +72,7 @@ describe("ConfigModule", () => {
     });
 
     it("should throw from getOrThrow when key is missing", async () => {
-      (global as any).LoadResourceFile = () => JSON.stringify({});
+      loadResourceFileSpy.mockImplementation(() => JSON.stringify({}));
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [ConfigModule.forRoot()],
@@ -73,10 +87,12 @@ describe("ConfigModule", () => {
 
   describe("convar helpers", () => {
     it("should read convars through mocked CitizenFX globals", async () => {
-      (global as any).GetConvar = (key: string, defaultValue: string) =>
-        key === "sv_hostname" ? "test-host" : defaultValue;
-      (global as any).GetConvarInt = (key: string, defaultValue: number) =>
-        key === "sv_maxclients" ? 64 : defaultValue;
+      getConvarSpy.mockImplementation((key: string, defaultValue: string) =>
+        key === "sv_hostname" ? "test-host" : defaultValue,
+      );
+      getConvarIntSpy.mockImplementation((key: string, defaultValue: number) =>
+        key === "sv_maxclients" ? 64 : defaultValue,
+      );
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [ConfigModule.forRoot()],
@@ -93,7 +109,7 @@ describe("ConfigModule", () => {
 
   describe("global option", () => {
     it("should expose ConfigService to modules that do not import ConfigModule when global: true", async () => {
-      (global as any).LoadResourceFile = () => JSON.stringify({ key: "value" });
+      loadResourceFileSpy.mockImplementation(() => JSON.stringify({ key: "value" }));
 
       @Injectable()
       class DependentProviderA {
@@ -167,7 +183,7 @@ describe("ConfigModule", () => {
     it("should skip reading the JSON config file when ignoreEnvFile is true", async () => {
       const loadResourceFileMock = jest.fn();
 
-      (global as any).LoadResourceFile = loadResourceFileMock;
+      loadResourceFileSpy.mockImplementation(loadResourceFileMock);
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [
@@ -360,11 +376,11 @@ describe("ConfigModule", () => {
 
   describe("forRootAsync", () => {
     it("should resolve config options through async useFactory", async () => {
-      (global as any).LoadResourceFile = (_resource: string, fileName: string) => {
+      loadResourceFileSpy.mockImplementation((_resource: string, fileName: string) => {
         if (fileName === "async.json") return JSON.stringify({ asyncKey: "asyncValue" });
 
         return "{}";
-      };
+      });
 
       const testingModuleInstance = await Test.createTestingModule({
         imports: [

@@ -1,18 +1,15 @@
 import { BytiumException } from "@core/exceptions/bytium.exception";
 import { InvocationContextInterface } from "@invocation/interfaces/invocation-context.interface";
 import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
-import { wrapTransferableForConsumer, wrapTransferableForOwner } from "@citizenfx/utils/transferable-marshaling.utils";
+import { transferableMarshalerInstance } from "@core/marshalers/transferable.marshaler";
 
 describe("transferable error marshaling", () => {
-  let originalIsDuplicityVersion: unknown;
-
   beforeAll(() => {
-    originalIsDuplicityVersion = (global as any).IsDuplicityVersion;
-    (global as any).IsDuplicityVersion = () => true;
+    jest.spyOn(globalThis, "IsDuplicityVersion").mockReturnValue(true);
   });
 
   afterAll(() => {
-    (global as any).IsDuplicityVersion = originalIsDuplicityVersion;
+    jest.restoreAllMocks();
   });
 
   class Facade {
@@ -36,7 +33,7 @@ describe("transferable error marshaling", () => {
   }
 
   const transfer = <T extends object>(instance: T): T =>
-    wrapTransferableForConsumer(wrapTransferableForOwner(instance));
+    transferableMarshalerInstance.wrapForConsumer(transferableMarshalerInstance.wrapForOwner(instance));
 
   it("passes a successful return value through unchanged", () => {
     const facade = transfer(new Facade());

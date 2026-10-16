@@ -2,22 +2,39 @@ import { LogLevelEnum } from "@logger/enums/log-level.enum";
 
 type LoggerModule = typeof import("@logger/logger");
 type InvocationModule = typeof import("@invocation/managers/invocation-context.manager");
+type SharedConstsModule = typeof import("@shared/consts/log-masked-errors.const");
 
 describe("Logger json format", () => {
   let logSpy: jest.SpyInstance;
-  const withFormat = (format: string | undefined, run: (modules: LoggerModule & InvocationModule) => void): void => {
-    (global as any).GetConvar = (key: string, defaultValue: string) =>
-      format !== undefined && key.includes("bytium-core:logFormat") ? format : defaultValue;
-    (global as any).IsDuplicityVersion = () => true;
+  let getConvarSpy: jest.SpyInstance<string, [string, string]>;
+  let isDuplicityVersionSpy: jest.SpyInstance<boolean, []>;
+  const withFormat = (
+    format: string | undefined,
+    run: (modules: LoggerModule & InvocationModule & SharedConstsModule) => void,
+  ): void => {
+    getConvarSpy.mockImplementation((key: string, defaultValue: string) =>
+      format !== undefined && key.includes("bytium-core:logFormat") ? format : defaultValue,
+    );
+    isDuplicityVersionSpy.mockReturnValue(true);
 
     jest.isolateModules(() => {
       const loggerModule = jest.requireActual("@logger/logger");
       const invocationModule = jest.requireActual("@invocation/managers/invocation-context.manager");
+      const sharedConstsModule = jest.requireActual("@shared/consts/log-masked-errors.const");
 
-      run({ ...loggerModule, ...invocationModule });
+      run({ ...loggerModule, ...invocationModule, ...sharedConstsModule });
     });
   };
   const lastLine = (): Record<string, unknown> => JSON.parse(logSpy.mock.calls[logSpy.mock.calls.length - 1][0]);
+
+  beforeAll(() => {
+    getConvarSpy = jest.spyOn(globalThis, "GetConvar");
+    isDuplicityVersionSpy = jest.spyOn(globalThis, "IsDuplicityVersion");
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(() => {
     logSpy = jest.spyOn(console, "log").mockImplementation(() => undefined);
@@ -25,8 +42,8 @@ describe("Logger json format", () => {
 
   afterEach(() => {
     logSpy.mockRestore();
-    (global as any).GetConvar = (_key: string, defaultValue: string) => defaultValue;
-    (global as any).IsDuplicityVersion = () => false;
+    getConvarSpy.mockImplementation((_key: string, defaultValue: string) => defaultValue);
+    isDuplicityVersionSpy.mockReturnValue(false);
   });
 
   it("should emit a single json line with timestamp, level, resource, context and message", () => {
@@ -51,7 +68,7 @@ describe("Logger json format", () => {
     expect(lastLine().message).toBe("broken but recovering");
   });
 
-  it("should decompose the first error into the error and stack fields, keeping payload for data", () => {
+  it("should decompose the first error with its stack inside, keeping payload for data", () => {
     withFormat("json", ({ Logger }) => {
       const failure = new Error("boom");
 
@@ -59,11 +76,70 @@ describe("Logger json format", () => {
     });
 
     const entry = lastLine();
+    const error = entry.error as Record<string, unknown>;
 
-    expect(entry.error).toEqual({ name: "Error", message: "boom" });
-    expect(typeof entry.stack).toBe("string");
-    expect(entry.stack).toContain("boom");
+    expect(error.name).toBe("Error");
+    expect(error.message).toBe("boom");
+    expect(typeof error.stack).toBe("string");
+    expect(String(error.stack)).toContain("boom");
+
+    expect(entry).not.toHaveProperty("stack");
     expect(entry.payload).toEqual([{ principal: "group.admin" }]);
+  });
+
+  it("should include the error's own fields in the decomposition", () => {
+    withFormat("json", ({ Logger }) => {
+      const failure = Object.assign(new Error("not found"), {
+        code: "ENOENT",
+        errors: { name: ["is required"] },
+      });
+
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", failure);
+    });
+
+    const error = lastLine().error as Record<string, unknown>;
+
+    expect(error.code).toBe("ENOENT");
+    expect(error.errors).toEqual({ name: ["is required"] });
+  });
+
+  it("should stringify an error field that cannot be serialized instead of dropping the line", () => {
+    withFormat("json", ({ Logger }) => {
+      const circular: Record<string, unknown> = {};
+
+      circular.self = circular;
+
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", Object.assign(new Error("boom"), { details: circular }));
+    });
+
+    const error = lastLine().error as Record<string, unknown>;
+
+    expect(typeof error.details).toBe("string");
+  });
+
+  it("should log the scrubbed errors copy instead of the original when the error carries one", () => {
+    withFormat("json", ({ Logger, LOG_MASKED_ERRORS }) => {
+      const failure = Object.assign(new Error("Validation failed"), {
+        errors: { login: ["must be at least 3 characters"], password: ['Expected string but received "hunter2"'] },
+      });
+
+      Object.defineProperty(failure, LOG_MASKED_ERRORS, {
+        value: { login: ["must be at least 3 characters"], password: ['Expected string but received "[REDACTED]"'] },
+      });
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", failure);
+
+      expect(Reflect.get(failure, "errors")).toEqual({
+        login: ["must be at least 3 characters"],
+        password: ['Expected string but received "hunter2"'],
+      });
+    });
+
+    const error = lastLine().error as Record<string, unknown>;
+
+    expect(error.errors).toEqual({
+      login: ["must be at least 3 characters"],
+      password: ['Expected string but received "[REDACTED]"'],
+    });
   });
 
   it("should decompose the error's cause into error.cause and chain its stack", () => {
@@ -74,13 +150,11 @@ describe("Logger json format", () => {
       new Logger("test", [LogLevelEnum.ERROR]).error("failed", wrapper);
     });
 
-    const entry = lastLine();
-    const error = entry.error as Record<string, unknown>;
+    const error = lastLine().error as Record<string, unknown>;
 
     expect(error.cause).toEqual({ name: "TypeError", message: "the real reason" });
-
-    expect(entry.stack).toContain("contextful wrapper");
-    expect(entry.stack).toContain("Caused by: TypeError: the real reason");
+    expect(String(error.stack)).toContain("contextful wrapper");
+    expect(String(error.stack)).toContain("Caused by: TypeError: the real reason");
   });
 
   it("should keep additional errors in the payload in their full shape", () => {
@@ -89,8 +163,10 @@ describe("Logger json format", () => {
     });
 
     const entry = lastLine();
+    const error = entry.error as Record<string, unknown>;
 
-    expect(entry.error).toEqual({ name: "TypeError", message: "first" });
+    expect(error.name).toBe("TypeError");
+    expect(error.message).toBe("first");
 
     const payload = entry.payload as Record<string, unknown>[];
 
@@ -160,6 +236,90 @@ describe("Logger json format", () => {
     expect(entry.type).toBe("COMMAND");
     expect(entry.handler).toBe("TestCommand.run");
     expect(entry.source).toBe(42);
+  });
+
+  it("should spread assigned __bytiumMetadata buckets as top-level fields", () => {
+    withFormat("json", ({ Logger, invocationContextManagerInstance }) => {
+      invocationContextManagerInstance.run(
+        () => ({
+          correlationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f",
+          type: "HTTP",
+          handler: "PlayersController.create",
+          __bytiumMetadata: { request: { method: "POST", path: "/players" } },
+        }),
+        () => {
+          new Logger("test", [LogLevelEnum.INFO]).log("player created");
+        },
+      );
+    });
+
+    const entry = lastLine();
+
+    expect(entry.request).toEqual({ method: "POST", path: "/players" });
+    expect(entry).not.toHaveProperty("__bytiumMetadata");
+  });
+
+  it("should not attach captured handler args to regular lines", () => {
+    withFormat("json", ({ Logger, invocationContextManagerInstance }) => {
+      invocationContextManagerInstance.run(
+        () => ({
+          correlationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f",
+          type: "COMMAND",
+          handler: "LoginCommand.login",
+          __bytiumHandlerArgs: ["lilabyte", "[REDACTED]"],
+        }),
+        () => {
+          new Logger("test", [LogLevelEnum.INFO]).log("inside handler");
+        },
+      );
+    });
+
+    const entry = lastLine();
+
+    expect(entry).not.toHaveProperty("__bytiumHandlerArgs");
+    expect(entry).not.toHaveProperty("args");
+  });
+
+  it("should attach captured handler args as a top-level field on error lines", () => {
+    withFormat("json", ({ Logger, invocationContextManagerInstance }) => {
+      invocationContextManagerInstance.run(
+        () => ({
+          correlationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f",
+          type: "COMMAND",
+          handler: "LoginCommand.login",
+          __bytiumHandlerArgs: ["lilabyte", "[REDACTED]"],
+        }),
+        () => {
+          new Logger("test", [LogLevelEnum.ERROR]).error("failed", new Error("wrong password"));
+        },
+      );
+    });
+
+    const entry = lastLine();
+
+    expect(entry.args).toEqual(["lilabyte", "[REDACTED]"]);
+    expect(entry).not.toHaveProperty("__bytiumHandlerArgs");
+  });
+
+  it("should print the scrubbed errors copy in pretty mode without touching the original", () => {
+    let failure: Error | undefined;
+
+    withFormat(undefined, ({ Logger, LOG_MASKED_ERRORS }) => {
+      failure = Object.assign(new Error("Validation failed"), {
+        errors: { password: ['received "hunter2"'] },
+      });
+
+      Object.defineProperty(failure, LOG_MASKED_ERRORS, { value: { password: ["[REDACTED]"] } });
+      new Logger("test", [LogLevelEnum.ERROR]).error("failed", failure);
+    });
+
+    const printed = logSpy.mock.calls[0][1] as Error & { errors: Record<string, string[]> };
+
+    expect(printed).toBeInstanceOf(Error);
+    expect(printed.message).toBe("Validation failed");
+    expect(printed.errors).toEqual({ password: ["[REDACTED]"] });
+
+    expect(Reflect.get(failure!, "errors")).toEqual({ password: ['received "hunter2"'] });
   });
 
   it("should append the cause explicitly in pretty mode", () => {

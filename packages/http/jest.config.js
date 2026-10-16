@@ -11,6 +11,8 @@ module.exports = {
     "^@http$": "<rootDir>/src/http/index.ts",
     "^@http/(.*)$": "<rootDir>/src/http/$1",
     "^@bytium-core/common/server$": "<rootDir>/../common/dist/server.js",
+    "^@bytium-core/common/internal/invocation/(.*)$": "<rootDir>/../common/dist/invocation/$1",
+    "^@bytium-core/common/internal/shared/(.*)$": "<rootDir>/../common/dist/shared/$1",
     "^@bytium-core/common/internal/(.*)$": "<rootDir>/../common/dist/core/$1"
   },
   "transform": {

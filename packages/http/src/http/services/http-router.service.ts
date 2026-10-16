@@ -6,9 +6,14 @@ import {
   HandlerInvoker,
   Inject,
   Injectable,
+  InvocationContext,
   isDevMode,
+  Logger,
   ModuleRef,
 } from "@bytium-core/common";
+import { boundaryLogManagerInstance } from "@bytium-core/common/internal/invocation/managers/boundary-log.manager";
+import { httpRequestLogManagerInstance } from "@http/managers/http-request-log.manager";
+import { RequestLogBuilder } from "@http/builders/request-log.builder";
 import { HttpMiddleware } from "@http/interfaces/http-middleware.interface";
 import { HttpRequest } from "@http/models/http-request.model";
 import { HttpResponse } from "@http/models/http-response.model";
@@ -36,6 +41,7 @@ import { HttpException } from "@http/exceptions/http.exception";
  */
 @Injectable()
 export class HttpRouterService {
+  readonly #logger = new Logger("bytium-core");
   private readonly routes: RouteEntryInterface[] = [];
   private readonly middleware: HttpMiddleware[] = [];
 
@@ -143,58 +149,123 @@ export class HttpRouterService {
         [HttpRequest, request],
         [HttpResponse, response],
       ]);
+      let controller: object;
 
       try {
-        const controller = await this.moduleRef.resolveContextual<object>(matchedRoute.controllerToken, store);
-
-        this.applyResponseMetadata(matchedRoute, response);
-
-        const context: HttpExecutionContext = {
-          type: "HTTP",
-          provider: controller,
-          methodName: matchedRoute.methodName,
-          request,
-          response,
-        };
-        const result = await this.handlerInvoker.invoke(context);
-
-        if (!response.sent) {
-          const redirect = this.routeMetadata<HttpRedirectInterface>(matchedRoute, HttpMetadataKeyEnum.REDIRECT);
-
-          if (redirect) {
-            response.status(redirect.statusCode).header("Location", redirect.url).send();
-          } else {
-            response.json(result);
-          }
-        }
-      } finally {
+        controller = await this.moduleRef.resolveContextual<object>(matchedRoute.controllerToken, store);
+      } catch (error) {
         await this.runRequestEndHooks(store);
+
+        throw error;
       }
+
+      const context: HttpExecutionContext = {
+        type: "HTTP",
+        provider: controller,
+        methodName: matchedRoute.methodName,
+        request,
+        response,
+        skipArgsLog: true,
+      };
+
+      await this.handlerInvoker.runCorrelated(context, async () => {
+        const boundaryLogged = boundaryLogManagerInstance.shouldLog(context.type);
+        const requestBucket = { method, path: rawPath };
+        const logLevel = httpRequestLogManagerInstance.getLevel();
+        const logMaskedHeaders = httpRequestLogManagerInstance.getMaskedHeaders();
+        const startedAt = Date.now();
+
+        try {
+          if (boundaryLogged) {
+            const entryRequestBucket = {
+              ...requestBucket,
+              ...RequestLogBuilder.requestFields(
+                request,
+                matchedRoute.controllerToken,
+                matchedRoute.methodName,
+                logLevel,
+                logMaskedHeaders,
+                httpRequestLogManagerInstance.getMaskedKeys(),
+              ),
+            };
+
+            InvocationContext.scoped({ request: entryRequestBucket }, () =>
+              this.#logger.log(`HTTP ${method} ${rawPath}`),
+            );
+          }
+
+          try {
+            this.applyResponseMetadata(matchedRoute, response);
+
+            const result = await this.handlerInvoker.invoke(context);
+
+            if (!response.sent) {
+              const redirect = this.routeMetadata<HttpRedirectInterface>(matchedRoute, HttpMetadataKeyEnum.REDIRECT);
+
+              if (redirect) {
+                response.status(redirect.statusCode).header("Location", redirect.url).send();
+              } else {
+                response.json(result);
+              }
+            }
+          } catch (error) {
+            this.sendErrorResponse(response, error);
+          }
+
+          const durationMs = Date.now() - startedAt;
+
+          if (boundaryLogged || response.statusCode >= 400) {
+            InvocationContext.scoped(
+              {
+                request: requestBucket,
+                response: {
+                  statusCode: response.statusCode,
+                  durationMs,
+                  ...RequestLogBuilder.responseHeaders(response.sentHeaders, logLevel, logMaskedHeaders),
+                },
+              },
+              () => this.#logger.log(`HTTP ${method} ${rawPath} -> ${response.statusCode} (${durationMs}ms)`),
+            );
+          }
+        } finally {
+          await this.runRequestEndHooks(store);
+        }
+      });
     } catch (error) {
-      if (response.sent) return;
-
-      if (error instanceof HttpException) {
-        this.sendError(response, error.status, error.message);
-
-        return;
-      }
-
-      if (error instanceof BytiumException) {
-        const status = typeof error.code === "number" ? error.code : 500;
-
-        this.sendError(response, status, error.message, error.errors ? { errors: error.errors } : {});
-
-        return;
-      }
-
-      if (isDevMode() && error instanceof Error) {
-        this.sendError(response, 500, error.message, { name: error.name, stack: error.stack });
-
-        return;
-      }
-
-      this.sendError(response, 500, "Internal Server Error");
+      this.sendErrorResponse(response, error);
     }
+  }
+
+  private sendErrorResponse(response: HttpResponse, error: unknown): void {
+    const [status, message, extra] = this.#errorResponseFor(error);
+
+    if (status >= 500) {
+      this.#logger.error("Error while handling HTTP request:", error);
+    } else {
+      this.#logger.log("Error while handling HTTP request:", error);
+    }
+
+    if (response.sent) return;
+
+    this.sendError(response, status, message, extra);
+  }
+
+  #errorResponseFor(error: unknown): [number, string, Record<string, unknown>] {
+    if (error instanceof HttpException) {
+      return [error.status, error.message, {}];
+    }
+
+    if (error instanceof BytiumException) {
+      const status = typeof error.code === "number" ? error.code : 500;
+
+      return [status, error.message, error.errors ? { errors: error.errors } : {}];
+    }
+
+    if (isDevMode() && error instanceof Error) {
+      return [500, error.message, { name: error.name, stack: error.stack }];
+    }
+
+    return [500, "Internal Server Error", {}];
   }
 
   private sendError(

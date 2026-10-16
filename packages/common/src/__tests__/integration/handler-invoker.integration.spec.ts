@@ -7,19 +7,17 @@ import { resolveVisibleInstance } from "@core/utils/scope-lookup.utils";
 import { AnyExecutionContext } from "@core/types/any-execution-context.type";
 import { GraphTokenType } from "@core/types/graph-token.type";
 import { BytiumMetadataEnum, ConstructorType } from "@shared";
+import { InvocationContext } from "@invocation/contexts/invocation.context";
 import { InvocationContextInterface } from "@invocation/interfaces/invocation-context.interface";
 import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
 
 describe("HandlerInvoker", () => {
-  let originalIsDuplicityVersion: unknown;
-
   beforeAll(() => {
-    originalIsDuplicityVersion = (global as any).IsDuplicityVersion;
-    (global as any).IsDuplicityVersion = () => true;
+    jest.spyOn(globalThis, "IsDuplicityVersion").mockReturnValue(true);
   });
 
   afterAll(() => {
-    (global as any).IsDuplicityVersion = originalIsDuplicityVersion;
+    jest.restoreAllMocks();
   });
 
   const stampParamDecorators = (
@@ -653,6 +651,48 @@ describe("HandlerInvoker", () => {
 
         expect(dependentProviderAInstance.context).toBe(boundaryContext);
       });
+    });
+
+    it("should keep __bytiumMetadata assigned by the handler for the rest of the invocation", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        metadataAfterAwait: InvocationContextInterface["__bytiumMetadata"];
+
+        async handle() {
+          InvocationContext.assign("player", { id: 42 });
+
+          await new Promise((resolve) => setTimeout(resolve, 5));
+
+          this.metadataAfterAwait = InvocationContext.current()?.__bytiumMetadata;
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" }));
+
+      expect(dependentProviderAInstance.metadataAfterAwait).toEqual({ player: { id: 42 } });
+    });
+
+    it("should not leak assigned __bytiumMetadata into the next invocation", async () => {
+      const handlerInvoker = new HandlerInvoker();
+      const seenMetadata: InvocationContextInterface["__bytiumMetadata"][] = [];
+
+      class DependentProviderA {
+        handle() {
+          seenMetadata.push(InvocationContext.current()?.__bytiumMetadata);
+          InvocationContext.assign("player", { id: 42 });
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" }));
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command" }));
+
+      expect(seenMetadata[0]).toBeUndefined();
+      expect(seenMetadata[1]).toBeUndefined();
     });
 
     it("should keep the invocation context in the boundary catch when the handler throws", async () => {

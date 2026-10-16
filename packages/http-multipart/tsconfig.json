@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": "./src",
-    "types": ["@types/node", "@types/jest"],
+    "types": ["@types/node", "@types/jest", "@citizenfx/server"],
     "paths": {
       "@multipart": ["./multipart/index.ts"],
       "@multipart/*": ["./multipart/*"]

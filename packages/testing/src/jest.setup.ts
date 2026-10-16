@@ -43,3 +43,4 @@ const exportsStore: Record<string, any> = {};
 (global as any).ClearTick = jest.fn();
 (global as any).clearTick = jest.fn();
 (global as any).RegisterCommand = jest.fn();
+(global as any).SetHttpHandler = jest.fn();

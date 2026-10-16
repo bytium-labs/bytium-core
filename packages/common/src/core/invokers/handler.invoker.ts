@@ -3,15 +3,23 @@ import { ForbiddenException } from "@core/exceptions/forbidden.exception";
 import { HandlerPipeline } from "@core/interfaces/handler-pipeline.interface";
 import { ParamDecoratorEntryInterface } from "@core/interfaces/param-decorator-entry.interface";
 import { AnyExecutionContext } from "@core/types/any-execution-context.type";
+import { HandlerArgsLogModeEnum } from "@invocation/enums/handler-args-log-mode.enum";
 import { InvocationContextInterface } from "@invocation/interfaces/invocation-context.interface";
+import { boundaryLogManagerInstance } from "@invocation/managers/boundary-log.manager";
+import { handlerArgsLogManagerInstance } from "@invocation/managers/handler-args-log.manager";
 import { invocationContextManagerInstance } from "@invocation/managers/invocation-context.manager";
+import { SensitiveMaskType } from "@invocation/types/sensitive-mask.type";
+import { HandlerArgsSerializer } from "@invocation/serializers/handler-args.serializer";
+import { Logger } from "@logger";
 import { BytiumMetadataEnum } from "@shared";
+import { SENSITIVE_SCHEMA_PATHS } from "@shared/consts/sensitive-schema-paths.const";
 
 /**
  * Invokes a provider's handler method, resolving its arguments from the param decorators.
  */
 @Injectable()
 export class HandlerInvoker {
+  readonly #logger = new Logger("bytium-core");
   readonly #pipelines = new WeakMap<object, Map<string, HandlerPipeline>>();
   readonly #classPipelines = new WeakMap<object, Map<string, HandlerPipeline>>();
   readonly #paramEntries = new WeakMap<object, Map<string, (ParamDecoratorEntryInterface | undefined)[]>>();
@@ -101,6 +109,8 @@ export class HandlerInvoker {
             }
           }
         }
+
+        this.#captureHandlerArgs(context, args);
 
         // FiveM for GTA V Enhanced workaround - microtask-defer sync handler throw
         await Promise.resolve();
@@ -207,9 +217,79 @@ export class HandlerInvoker {
       }
     }
 
+    this.#captureHandlerArgs(context, args);
+
     const method = (context.provider as Record<string, (...args: unknown[]) => unknown>)[context.methodName];
 
     return method.apply(context.provider, args) as TReturn;
+  }
+
+  #captureHandlerArgs(context: AnyExecutionContext, args: unknown[]): void {
+    const mode = handlerArgsLogManagerInstance.getMode();
+
+    if (context.skipArgsLog || mode === HandlerArgsLogModeEnum.OFF || args.length === 0) {
+      return;
+    }
+
+    const handlerArgs = HandlerArgsSerializer.serialize(args, this.#sensitiveMasksFor(context));
+    const invocationContext = invocationContextManagerInstance.getContext();
+
+    if (invocationContext) {
+      invocationContext.__bytiumHandlerArgs = handlerArgs;
+    }
+
+    if (mode !== HandlerArgsLogModeEnum.ALL || !boundaryLogManagerInstance.shouldLog(context.type)) {
+      return;
+    }
+
+    const message = `Invoking ${context.provider.constructor.name}.${context.methodName}`;
+
+    if (invocationContext) {
+      invocationContextManagerInstance.run(
+        () => ({
+          ...invocationContext,
+          __bytiumMetadata: { ...invocationContext.__bytiumMetadata, args: handlerArgs },
+        }),
+        () => this.#logger.log(message),
+      );
+
+      return;
+    }
+
+    this.#logger.log(message);
+  }
+
+  #sensitiveMasksFor(context: AnyExecutionContext): Map<number, SensitiveMaskType> {
+    const prototype = Object.getPrototypeOf(context.provider) as object;
+    const decorated = (Reflect.getMetadata(BytiumMetadataEnum.SENSITIVE_PARAMS, prototype, context.methodName) ??
+      {}) as Record<number, SensitiveMaskType>;
+    const masks = new Map<number, SensitiveMaskType>();
+
+    for (const [index, mask] of Object.entries(decorated)) {
+      masks.set(Number(index), mask);
+    }
+
+    const entries = this.#paramEntriesFor(prototype, context.methodName);
+
+    for (let index = 0; index < entries.length; index++) {
+      const existing = masks.get(index);
+
+      if (existing === true) {
+        continue;
+      }
+
+      const schemaPaths = entries[index]?.pipes?.flatMap((pipe) =>
+        (typeof pipe === "object" || typeof pipe === "function") && pipe !== null
+          ? ((Reflect.get(pipe, SENSITIVE_SCHEMA_PATHS) as string[] | undefined) ?? [])
+          : [],
+      );
+
+      if (schemaPaths?.length) {
+        masks.set(index, [...(existing ?? []), ...schemaPaths]);
+      }
+    }
+
+    return masks;
   }
 
   #isInsideOwnContext(context: AnyExecutionContext): boolean {

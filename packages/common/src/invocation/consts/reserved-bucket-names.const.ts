@@ -1,0 +1,17 @@
+export const RESERVED_BUCKET_NAMES = new Set([
+  "timestamp",
+  "level",
+  "resource",
+  "context",
+  "message",
+  "correlationId",
+  "type",
+  "handler",
+  "source",
+  "invokedBy",
+  "__bytiumMetadata",
+  "__bytiumHandlerArgs",
+  "args",
+  "error",
+  "payload",
+]);

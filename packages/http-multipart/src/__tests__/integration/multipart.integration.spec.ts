@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { UseInterceptor } from "@bytium-core/common";
 import { HttpController, HttpModule, Post } from "@bytium-core/http";
 import { Test } from "@bytium-core/testing";
-import { Field, MultipartFile, MultipartInterceptor, UploadedFile, parseMultipart } from "@multipart";
+import { Field, MultipartFile, MultipartInterceptor, MultipartParser, UploadedFile } from "@multipart";
 
 // The PNG signature carries 0x0d 0x0a (CRLF) bytes, so a correct parser must not split on them.
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x01, 0x02]);
@@ -77,14 +77,18 @@ describe("multipart uploads", () => {
     for (let i = 0; i < 10; i++) await Promise.resolve();
   };
 
-  beforeEach(() => {
-    (global as unknown as { SetHttpHandler: unknown }).SetHttpHandler = (handler: typeof httpHandler) => {
-      httpHandler = handler;
-    };
+  beforeAll(() => {
+    jest.spyOn(globalThis, "SetHttpHandler").mockImplementation((handler) => {
+      httpHandler = handler as typeof httpHandler;
+    });
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   it("should parse a multipart body into files and fields preserving binary bytes", () => {
-    const parsed = parseMultipart(buildBody(), BOUNDARY);
+    const parsed = MultipartParser.parse(buildBody(), BOUNDARY);
 
     expect(parsed.fields).toEqual({ playerId: "42" });
 
@@ -103,7 +107,7 @@ describe("multipart uploads", () => {
       ...PNG,
       ...encode(`\r\n--${BOUNDARY}--\r\n`),
     ]).buffer;
-    const parsed = parseMultipart(body, BOUNDARY);
+    const parsed = MultipartParser.parse(body, BOUNDARY);
 
     expect(parsed.files).toHaveLength(1);
     expect(parsed.files[0].fieldName).toBe("avatar");

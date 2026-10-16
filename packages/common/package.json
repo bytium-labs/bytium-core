@@ -1,6 +1,6 @@
 {
   "name": "@bytium-core/common",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Core dependency injection, modules, and decorators for the bytium-core framework (FiveM).",
   "repository": {
     "type": "git",
@@ -42,6 +42,22 @@
     "./client": {
       "require": "./dist/client.js",
       "types": "./dist/client.d.ts"
+    },
+    "./internal/invocation/managers/boundary-log.manager": {
+      "require": "./dist/invocation/managers/boundary-log.manager.js",
+      "types": "./dist/invocation/managers/boundary-log.manager.d.ts"
+    },
+    "./internal/shared/consts/sensitive-schema-paths.const": {
+      "require": "./dist/shared/consts/sensitive-schema-paths.const.js",
+      "types": "./dist/shared/consts/sensitive-schema-paths.const.d.ts"
+    },
+    "./internal/shared/utils/sensitive-paths.utils": {
+      "require": "./dist/shared/utils/sensitive-paths.utils.js",
+      "types": "./dist/shared/utils/sensitive-paths.utils.d.ts"
+    },
+    "./internal/shared/utils/convar.utils": {
+      "require": "./dist/shared/utils/convar.utils.js",
+      "types": "./dist/shared/utils/convar.utils.d.ts"
     },
     "./internal/managers/bytium-dependency.manager": {
       "require": "./dist/core/managers/bytium-dependency.manager.js",

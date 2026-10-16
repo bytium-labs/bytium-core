@@ -5,6 +5,7 @@ import { DependencyGraph } from "@core/graphs/dependency.graph";
 import { CustomProviderConfigType } from "@core/types/custom-provider-config.type";
 import { GraphTokenType } from "@core/types/graph-token.type";
 import { DependencyUndefinedException } from "@core/exceptions/dependency-undefined.exception";
+import { getTokenName } from "@core/utils/token-name.utils";
 
 export function applyGraphOverride(
   graph: DependencyGraph,
@@ -15,7 +16,7 @@ export function applyGraphOverride(
 
   if (!node) {
     throw new DependencyUndefinedException(
-      `Cannot override "${tokenName(token)}" - no matching provider in the graph. ` +
+      `Cannot override "${getTokenName(token)}" - no matching provider in the graph. ` +
         `Check the token spelling and that the providing module is included in imports.`,
     );
   }
@@ -65,12 +66,4 @@ export function applyGraphOverride(
   if ("useClass" in override && override.useClass) {
     graph.addEdge(token, override.useClass, GraphEdgeTypeEnum.DEPENDENCY);
   }
-}
-
-function tokenName(token: GraphTokenType): string {
-  if (typeof token === "string") return token;
-
-  if (typeof token === "symbol") return token.toString();
-
-  return token.name;
 }

@@ -1,7 +1,8 @@
 import { CronOptions } from "@citizenfx/decorators/shared/cron.decorator";
 import { ConstructorType } from "@shared";
 import { ParsedCronExpression } from "@citizenfx/interfaces/parsed-cron-expression.interface";
-import { parseCronExpression, getNextCronRun } from "@citizenfx/utils/cron.utils";
+import { CronExpressionParser } from "@citizenfx/parsers/cron-expression.parser";
+import { CronSchedule } from "@citizenfx/schedules/cron.schedule";
 
 export class RegisteredCronJobModel {
   readonly #expression: ParsedCronExpression;
@@ -14,9 +15,9 @@ export class RegisteredCronJobModel {
     public readonly provider: ConstructorType,
     public readonly methodName: string,
   ) {
-    this.#expression = parseCronExpression(options.expression);
+    this.#expression = CronExpressionParser.parse(options.expression);
     this.#timeZone = options.timezone;
-    this.nextRun = getNextCronRun(this.#expression, new Date(), this.#timeZone);
+    this.nextRun = CronSchedule.nextOccurrence(this.#expression, new Date(), this.#timeZone);
   }
 
   isDue(): boolean {
@@ -24,6 +25,6 @@ export class RegisteredCronJobModel {
   }
 
   advanceNextRun(): void {
-    this.nextRun = getNextCronRun(this.#expression, this.nextRun, this.#timeZone);
+    this.nextRun = CronSchedule.nextOccurrence(this.#expression, this.nextRun, this.#timeZone);
   }
 }

@@ -1,7 +1,8 @@
 import { Injectable } from "@core/decorators/injectable.decorator";
 import { Logger } from "@logger";
-import { deserializeError, isSerializedError } from "@citizenfx/utils/error-serialization.utils";
+import { ErrorSerializer } from "@core/serializers/error.serializer";
 import { CallbackQueueEntryInterface } from "@citizenfx/interfaces/callback-queue-entry.interface";
+import { appendCorrelationEnvelope } from "@invocation/utils/correlation-envelope.utils";
 
 @Injectable()
 export class CallbacksService {
@@ -29,8 +30,8 @@ export class CallbacksService {
     delete queue[name][responseIdentifier];
     clearTimeout(entry.timer);
 
-    if (args.length === 1 && isSerializedError(args[0])) {
-      entry.reject(deserializeError(args[0]));
+    if (args.length === 1 && ErrorSerializer.isSerialized(args[0])) {
+      entry.reject(ErrorSerializer.deserialize(args[0]));
 
       return;
     }
@@ -71,7 +72,7 @@ export class CallbacksService {
         timer,
       };
 
-      emit(`__bytium_callbackCall:${name}`, responseIdentifier, ...args);
+      emit(`__bytium_callbackCall:${name}`, responseIdentifier, ...appendCorrelationEnvelope(args));
     });
   }
 

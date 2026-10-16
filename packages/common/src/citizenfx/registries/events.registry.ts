@@ -1,4 +1,3 @@
-import { extractCorrelationEnvelope } from "@citizenfx/utils/correlation-envelope.utils";
 import { OnClientResourceStartOptions } from "@citizenfx/decorators/client/on-client-resource-start.decorator";
 import { OnClientResourceStopOptions } from "@citizenfx/decorators/client/on-client-resource-stop.decorator";
 import { OnConsoleOutputOptions } from "@citizenfx/decorators/server/on-console-output.decorator";
@@ -12,6 +11,8 @@ import { OnResourceStopOptions } from "@citizenfx/decorators/shared/on-resource-
 import { OnServerResourceStartOptions } from "@citizenfx/decorators/server/on-server-resource-start.decorator";
 import { OnServerResourceStopOptions } from "@citizenfx/decorators/server/on-server-resource-stop.decorator";
 import { HandlerInvoker } from "@core/invokers/handler.invoker";
+import { boundaryLogManagerInstance } from "@invocation/managers/boundary-log.manager";
+import { extractCorrelationEnvelope } from "@invocation/utils/correlation-envelope.utils";
 import { AnyExecutionContext } from "@core/types/any-execution-context.type";
 import { Logger } from "@logger";
 import { ConstructorType } from "@shared";
@@ -34,8 +35,13 @@ export class EventsRegistry {
     handlerInvoker: HandlerInvoker,
     context: AnyExecutionContext,
     errorLabel: string,
+    entryMessage?: string,
   ): void {
     handlerInvoker.runCorrelated(context, () => {
+      if (entryMessage && boundaryLogManagerInstance.shouldLog(context.type)) {
+        this.#logger.log(entryMessage);
+      }
+
       if (sync) {
         try {
           const result = handlerInvoker.invokeSync(context);
@@ -77,6 +83,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnClientResourceStart on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnClientResourceStart "${options.name}"`,
       );
     });
   }
@@ -106,6 +113,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnClientResourceStop on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnClientResourceStop "${options.name}"`,
       );
     });
   }
@@ -130,6 +138,7 @@ export class EventsRegistry {
 
       const context = { type: "ON_CONSOLE_OUTPUT", provider: instance, methodName, channel, message };
 
+      // deliberately no entry line: logging inside a console listener re-enters it (feedback loop + known deadlock)
       this.#runHandler(
         options.sync,
         handlerInvoker,
@@ -154,6 +163,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnConvarChange on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnConvarChange "${convarName}"`,
       );
     });
   }
@@ -177,6 +187,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnEvent on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnEvent "${options.name}"`,
       );
     });
   }
@@ -198,6 +209,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnGameEvent on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnGameEvent "${options.name}"`,
       );
     });
   }
@@ -229,6 +241,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnNetEvent on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnNetEvent "${options.name}"`,
       );
     });
   }
@@ -250,6 +263,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnResourceStart on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnResourceStart "${options.name}"`,
       );
     });
   }
@@ -271,6 +285,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnResourceStop on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnResourceStop "${options.name}"`,
       );
     });
   }
@@ -300,6 +315,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnServerResourceStart on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnServerResourceStart "${options.name}"`,
       );
     });
   }
@@ -329,6 +345,7 @@ export class EventsRegistry {
         handlerInvoker,
         context,
         `Error while handling @OnServerResourceStop on method ${methodName} in provider ${provider.name}:`,
+        `Executing @OnServerResourceStop "${options.name}"`,
       );
     });
   }

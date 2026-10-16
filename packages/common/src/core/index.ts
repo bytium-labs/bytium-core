@@ -1,7 +1,7 @@
 export { BYTIUM_VERSION } from "@core/version";
 export { BytiumResource, BytiumResourceOptions } from "@core/decorators/bytium-resource.decorator";
 export { BytiumResourceModule, BytiumResourceModuleOptions } from "@core/decorators/bytium-resource-module.decorator";
-export { Transferable, TransferableOptions } from "@core/decorators/transferable.decorator";
+export { instanceOfTransferable, Transferable, TransferableOptions } from "@core/decorators/transferable.decorator";
 export { Inject, InjectOptions } from "@core/decorators/inject.decorator";
 export { Injectable, InjectableOptions } from "@core/decorators/injectable.decorator";
 export { Controller } from "@core/decorators/controller.decorator";
@@ -94,3 +94,4 @@ export { OnResourceStartedInterface } from "@core/interfaces/on-resource-started
 
 export { bootstrap } from "@core/utils/bootstrap.utils";
 export { forwardRef } from "@core/utils/forward-ref.utils";
+export { sensitive } from "@core/utils/sensitive-schema.utils";

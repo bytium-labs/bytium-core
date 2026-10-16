@@ -38,6 +38,9 @@ export enum BytiumMetadataEnum {
   /** Parameter decorators declared on a method. */
   PARAM_DECORATORS = "bytium:method:paramDecorators",
 
+  /** Parameter positions masked in handler args logging. */
+  SENSITIVE_PARAMS = "bytium:method:sensitiveParams",
+
   /** Guards attached to a method or class. */
   GUARDS = "bytium:method:guards",
 

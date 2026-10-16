@@ -6,7 +6,7 @@ import { serializeCookie } from "@http/utils/serialize-cookie.util";
  * The outgoing HTTP response for the current invocation.
  */
 export class HttpResponse {
-  private statusCode = 200;
+  #statusCode = 200;
   private readonly headers: Record<string, string | string[]> = {};
   private headWritten = false;
   private finished = false;
@@ -18,9 +18,21 @@ export class HttpResponse {
     return this.finished;
   }
 
+  /** Status code the response was or will be sent with. */
+  get statusCode(): number {
+    return this.#statusCode;
+  }
+
+  /** Headers the response was or will be sent with. */
+  get sentHeaders(): Record<string, string | string[]> {
+    return Object.fromEntries(
+      Object.entries(this.headers).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value]),
+    );
+  }
+
   /** Sets the response status code. */
   status(code: number): this {
-    this.statusCode = code;
+    this.#statusCode = code;
 
     return this;
   }
@@ -80,6 +92,6 @@ export class HttpResponse {
     if (this.headWritten) return;
 
     this.headWritten = true;
-    this.native.writeHead(this.statusCode, this.headers);
+    this.native.writeHead(this.#statusCode, this.headers);
   }
 }

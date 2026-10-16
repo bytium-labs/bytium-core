@@ -10,6 +10,7 @@ import { TickNotFoundException } from "@citizenfx/exceptions/tick-not-found.exce
 import { Logger } from "@logger";
 
 describe("TicksService", () => {
+  let setTickSpy: jest.SpyInstance;
   let dependencyGraph: DependencyGraph;
   let dependencyManager: BytiumDependencyManager;
   const getInstance = <T>(token: GraphTokenType, module: ConstructorType): T | undefined => {
@@ -18,7 +19,16 @@ describe("TicksService", () => {
     return moduleNode ? (resolveVisibleInstance(dependencyGraph, token, moduleNode)?.instance as T) : undefined;
   };
 
+  beforeAll(() => {
+    setTickSpy = jest.spyOn(globalThis, "setTick");
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
+    setTickSpy.mockImplementation(() => 0);
     dependencyGraph = new DependencyGraph();
     dependencyManager = new BytiumDependencyManager(dependencyGraph);
   });
@@ -61,44 +71,39 @@ describe("TicksService", () => {
 
   it("should call the provider's @Tick method each time the tick fires", async () => {
     let capturedTickCallback: (() => Promise<void>) | undefined;
-    const originalSetTick = (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick;
 
-    (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick = (cb) => {
+    setTickSpy.mockImplementation((cb: () => Promise<void>) => {
       capturedTickCallback = cb;
 
       return 1;
-    };
+    });
 
-    try {
-      @Injectable()
-      class DependentProviderA {
-        tickCount = 0;
+    @Injectable()
+    class DependentProviderA {
+      tickCount = 0;
 
-        @Tick({ autoStart: true })
-        myTick(): void {
-          this.tickCount++;
-        }
+      @Tick({ autoStart: true })
+      myTick(): void {
+        this.tickCount++;
       }
-
-      @BytiumResourceModule({ name: "testModule", providers: [DependentProviderA] })
-      class TestModule {}
-
-      @BytiumResource({ modules: [TestModule] })
-      class TestResource {}
-
-      await dependencyManager.resolve(TestResource);
-
-      const dependentProviderAInstance = getInstance<DependentProviderA>(DependentProviderA, TestModule);
-
-      expect(capturedTickCallback).toBeDefined();
-
-      await capturedTickCallback!();
-      await capturedTickCallback!();
-
-      expect(dependentProviderAInstance!.tickCount).toBe(2);
-    } finally {
-      (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick = originalSetTick;
     }
+
+    @BytiumResourceModule({ name: "testModule", providers: [DependentProviderA] })
+    class TestModule {}
+
+    @BytiumResource({ modules: [TestModule] })
+    class TestResource {}
+
+    await dependencyManager.resolve(TestResource);
+
+    const dependentProviderAInstance = getInstance<DependentProviderA>(DependentProviderA, TestModule);
+
+    expect(capturedTickCallback).toBeDefined();
+
+    await capturedTickCallback!();
+    await capturedTickCallback!();
+
+    expect(dependentProviderAInstance!.tickCount).toBe(2);
   });
 
   it("should throw TickNotFoundException when TicksService.start is called for an unknown method name", async () => {
@@ -134,13 +139,12 @@ describe("TicksService", () => {
 
   it("should log the rejection via the framework logger when an async @Tick handle rejects", async () => {
     let capturedTickCallback: (() => Promise<void>) | undefined;
-    const originalSetTick = (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick;
 
-    (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick = (cb) => {
+    setTickSpy.mockImplementation((cb: () => Promise<void>) => {
       capturedTickCallback = cb;
 
       return 1;
-    };
+    });
 
     const loggerErrorSpy = jest.spyOn(Logger.prototype, "error").mockImplementation(() => {});
 
@@ -176,7 +180,6 @@ describe("TicksService", () => {
       );
     } finally {
       loggerErrorSpy.mockRestore();
-      (global as unknown as { setTick: (cb: () => Promise<void>) => number }).setTick = originalSetTick;
     }
   });
 

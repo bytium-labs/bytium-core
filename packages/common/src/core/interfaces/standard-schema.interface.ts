@@ -42,4 +42,8 @@ export namespace StandardSchemaV1 {
     readonly input: Input;
     readonly output: Output;
   }
+
+  export type InferInput<TSchema extends StandardSchemaV1> = NonNullable<TSchema["~standard"]["types"]>["input"];
+
+  export type InferOutput<TSchema extends StandardSchemaV1> = NonNullable<TSchema["~standard"]["types"]>["output"];
 }

@@ -29,7 +29,7 @@ export function Transferable(a?: string | TransferableOptions): <T extends Const
   return function <T extends ConstructorType>(constructor: T) {
     const transferableConstructor = class extends constructor {
       /** Public marker on a Transferable instance received across resource boundaries - the resource that owns the underlying provider. */
-      __ownerResourceName = global.GetCurrentResourceName();
+      __ownerResourceName = GetCurrentResourceName();
 
       constructor(...args: any[]) {
         super(...args);
@@ -151,4 +151,9 @@ export function Transferable(a?: string | TransferableOptions): <T extends Const
 
     return transferableConstructor;
   };
+}
+
+/** Whether the value carries the `@Transferable()` owner marker. */
+export function instanceOfTransferable(value: unknown): value is object {
+  return value !== null && typeof value === "object" && "__ownerResourceName" in value;
 }

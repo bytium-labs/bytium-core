@@ -1,6 +1,6 @@
 import { Injectable } from "@core/decorators/injectable.decorator";
 import { CallbacksService } from "@citizenfx/services/callbacks.service";
-import { appendCorrelationEnvelope } from "@citizenfx/utils/correlation-envelope.utils";
+import { appendCorrelationEnvelope } from "@invocation/utils/correlation-envelope.utils";
 
 /**
  * Event bus service for emitting and listening to events. It also provides methods for invoking callbacks.

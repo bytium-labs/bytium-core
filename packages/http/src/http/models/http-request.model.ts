@@ -17,7 +17,7 @@ export class HttpRequest {
     /** Parsed query-string values. */
     public readonly query: Record<string, string | string[]>,
 
-    /** The request body: the raw `ArrayBuffer` for binary routes, parsed JSON when it parses, else the raw string. */
+    /** Raw request body: an `ArrayBuffer` for binary routes, otherwise the unparsed string. */
     public readonly body: string | ArrayBuffer,
   ) {
     this.normalizedHeaders = normalizeHeaders(native.headers);
