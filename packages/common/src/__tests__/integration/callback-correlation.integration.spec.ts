@@ -63,7 +63,8 @@ describe("callback correlation envelope", () => {
       type: "COMMAND",
       provider: dependentProviderAInstance,
       methodName: "handle",
-      source: 0,
+      source: "0",
+      rawSource: 0,
       args: [],
       rawCommand: "",
     };

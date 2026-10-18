@@ -22,6 +22,7 @@ export { Arg } from "@citizenfx/decorators/shared/arg.decorator";
 export { Sensitive } from "@citizenfx/decorators/shared/sensitive.decorator";
 export { RawCommand } from "@citizenfx/decorators/shared/raw-command.decorator";
 export { Source } from "@citizenfx/decorators/shared/source.decorator";
+export { RawSource } from "@citizenfx/decorators/shared/raw-source.decorator";
 export { RequireAce } from "@citizenfx/decorators/shared/require-ace.decorator";
 export { AcePermissionGuard } from "@citizenfx/guards/ace-permission.guard";
 export { ConvarName } from "@citizenfx/decorators/shared/convar-name.decorator";

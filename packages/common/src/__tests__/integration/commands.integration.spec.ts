@@ -17,7 +17,7 @@ import {
   UseInterceptor,
   UsePipe,
 } from "@core";
-import { Arg, Source, Args, RawCommand } from "@citizenfx";
+import { Arg, Source, RawSource, Args, RawCommand } from "@citizenfx";
 import { Command } from "@citizenfx/decorators/client/command.decorator";
 import { DependencyGraph } from "@core/graphs/dependency.graph";
 import { BytiumDependencyManager } from "@core/managers/bytium-dependency.manager";
@@ -48,14 +48,20 @@ describe("Commands registry", () => {
   });
 
   it("should invoke a @Command handler with each argument resolved from its param decorators", async () => {
-    const received: { args?: string[]; source?: number; rawCommand?: string } = {};
+    const received: { args?: string[]; source?: string; rawSource?: unknown; rawCommand?: string } = {};
 
     @Controller()
     class CommandControllerA {
       @Command("test")
-      handle(@Args() args: string[], @Source() source: number, @RawCommand() rawCommand: string) {
+      handle(
+        @Args() args: string[],
+        @Source() source: string,
+        @RawSource() rawSource: unknown,
+        @RawCommand() rawCommand: string,
+      ) {
         received.args = args;
         received.source = source;
+        received.rawSource = rawSource;
         received.rawCommand = rawCommand;
       }
     }
@@ -72,7 +78,8 @@ describe("Commands registry", () => {
     await flushMicrotasks();
 
     expect(received.args).toEqual(["kick", "reason"]);
-    expect(received.source).toBe(5);
+    expect(received.source).toBe("5");
+    expect(received.rawSource).toBe(5);
     expect(received.rawCommand).toBe("test kick reason");
   });
 
@@ -210,7 +217,7 @@ describe("Commands registry", () => {
 
     class DoubleSourcePipe implements PipeTransform {
       transform(value: unknown) {
-        return typeof value === "number" ? value * 2 : value;
+        return Number(value) * 2;
       }
     }
 

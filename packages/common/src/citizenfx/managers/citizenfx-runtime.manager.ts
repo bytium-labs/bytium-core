@@ -1,3 +1,4 @@
+import { stringifySource } from "@citizenfx/utils/source.utils";
 import { CronJobsRegistry } from "@citizenfx/registries/cron-jobs.registry";
 import { CommandsRegistry } from "@citizenfx/registries/commands.registry";
 import { Logger } from "@logger";
@@ -17,12 +18,11 @@ export class CitizenFXRuntimeManager {
 
   #getSuggestionsForPlayer(
     commandsWithSuggestions: RegisteredCommandModel[],
-    source?: number,
+    source?: string,
   ): CommandSuggestionInterface[] {
     return commandsWithSuggestions
       .filter(
-        ({ name }) =>
-          (!source && !this.#isCitizenFXServer) || IsPlayerAceAllowed(source as unknown as string, `command.${name}`),
+        ({ name }) => (!source && !this.#isCitizenFXServer) || IsPlayerAceAllowed(source ?? "", `command.${name}`),
       )
       .map(({ name, options }) => ({
         name: `/${name}`,
@@ -31,7 +31,7 @@ export class CitizenFXRuntimeManager {
       }));
   }
 
-  #registerSuggestionsForPlayer(commandsWithSuggestions: RegisteredCommandModel[], source?: number): void {
+  #registerSuggestionsForPlayer(commandsWithSuggestions: RegisteredCommandModel[], source?: string): void {
     const suggestions = this.#getSuggestionsForPlayer(commandsWithSuggestions, source);
 
     if (this.#isCitizenFXServer) {
@@ -84,11 +84,9 @@ export class CitizenFXRuntimeManager {
 
     if (this.#isCitizenFXServer) {
       onNet("chat:init", () => {
-        const source = global.source;
+        const source = stringifySource(global.source);
 
-        this.#logger.debug(`Received net event "chat:init" from source "${source}" (typeof source: ${typeof source})`);
-
-        if (source <= 0) {
+        if (!(Number(source) > 0)) {
           return;
         }
 
@@ -96,10 +94,7 @@ export class CitizenFXRuntimeManager {
       });
 
       for (const player of getPlayers()) {
-        this.#logger.debug(
-          `Registering command suggestions for player source "${player}" (typeof source: ${typeof player}) on resource start.`,
-        );
-        this.#registerSuggestionsForPlayer(commandsWithSuggestions, Number(player));
+        this.#registerSuggestionsForPlayer(commandsWithSuggestions, player);
       }
     } else {
       this.#registerSuggestionsForPlayer(commandsWithSuggestions);

@@ -15,14 +15,15 @@ describe("Execution context types", () => {
       type: "NET_CALLBACK",
       provider: {},
       methodName: "handle",
-      source: 5,
+      source: "5",
+      rawSource: 5,
       args: ["payload"],
     };
 
     expect(serverContext.type).toBe("NET_CALLBACK");
 
     if (serverContext.type === "NET_CALLBACK") {
-      expect(serverContext.source).toBe(5);
+      expect(serverContext.source).toBe("5");
     }
   });
 

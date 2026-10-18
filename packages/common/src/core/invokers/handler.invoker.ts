@@ -306,7 +306,7 @@ export class HandlerInvoker {
       correlationId: context.correlationId ?? crypto.randomUUID(),
       type: context.type,
       handler: `${context.provider.constructor.name}.${context.methodName}`,
-      ...(typeof source === "number" ? { source } : {}),
+      ...(typeof source === "string" ? { source } : {}),
     };
   }
 

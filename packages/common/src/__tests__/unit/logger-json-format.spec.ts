@@ -222,7 +222,7 @@ describe("Logger json format", () => {
           correlationId: "0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f",
           type: "COMMAND",
           handler: "TestCommand.run",
-          source: 42,
+          source: "42",
         }),
         () => {
           new Logger("test", [LogLevelEnum.INFO]).log("inside handler");
@@ -235,7 +235,7 @@ describe("Logger json format", () => {
     expect(entry.correlationId).toBe("0c6f1f3e-5b7a-4d2c-9e8f-3a1b2c4d5e6f");
     expect(entry.type).toBe("COMMAND");
     expect(entry.handler).toBe("TestCommand.run");
-    expect(entry.source).toBe(42);
+    expect(entry.source).toBe("42");
   });
 
   it("should spread assigned __bytiumMetadata buckets as top-level fields", () => {

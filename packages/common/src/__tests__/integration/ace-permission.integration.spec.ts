@@ -32,7 +32,7 @@ describe("AcePermissionGuard", () => {
     const dependentProviderAInstance = new DependentProviderA();
 
     expect(
-      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: 5 })),
+      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: "5" })),
     ).toBe(true);
   });
 
@@ -48,7 +48,7 @@ describe("AcePermissionGuard", () => {
     const dependentProviderAInstance = new DependentProviderA();
 
     expect(
-      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: 5 })),
+      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: "5" })),
     ).toBe(true);
   });
 
@@ -64,7 +64,7 @@ describe("AcePermissionGuard", () => {
     const dependentProviderAInstance = new DependentProviderA();
 
     expect(
-      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: 5 })),
+      acePermissionGuard.canActivate(buildContext(dependentProviderAInstance, { type: "onNetEvent", source: "5" })),
     ).toBe(false);
   });
 

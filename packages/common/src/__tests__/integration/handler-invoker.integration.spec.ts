@@ -545,16 +545,34 @@ describe("HandlerInvoker", () => {
 
       const dependentProviderAInstance = new DependentProviderA();
 
-      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command", source: 42 }));
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "command", source: "42" }));
 
       expect(dependentProviderAInstance.contextBeforeAwait).toBeDefined();
       expect(dependentProviderAInstance.contextBeforeAwait?.type).toBe("command");
       expect(dependentProviderAInstance.contextBeforeAwait?.handler).toBe("DependentProviderA.handle");
-      expect(dependentProviderAInstance.contextBeforeAwait?.source).toBe(42);
+      expect(dependentProviderAInstance.contextBeforeAwait?.source).toBe("42");
       expect(dependentProviderAInstance.contextBeforeAwait?.correlationId).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
       expect(dependentProviderAInstance.contextAfterAwait).toBe(dependentProviderAInstance.contextBeforeAwait);
+    });
+
+    it("should keep a source that does not belong to a player", async () => {
+      const handlerInvoker = new HandlerInvoker();
+
+      class DependentProviderA {
+        context: InvocationContextInterface | undefined;
+
+        handle() {
+          this.context = invocationContextManagerInstance.getContext();
+        }
+      }
+
+      const dependentProviderAInstance = new DependentProviderA();
+
+      await handlerInvoker.invoke(buildContext(dependentProviderAInstance, { type: "event", source: "script" }));
+
+      expect(dependentProviderAInstance.context?.source).toBe("script");
     });
 
     it("should omit the source when the execution context has none", async () => {
@@ -737,10 +755,10 @@ describe("HandlerInvoker", () => {
 
       const dependentProviderAInstance = new DependentProviderA();
 
-      handlerInvoker.invokeSync(buildContext(dependentProviderAInstance, { type: "event", source: 7 }));
+      handlerInvoker.invokeSync(buildContext(dependentProviderAInstance, { type: "event", source: "7" }));
 
       expect(dependentProviderAInstance.context?.handler).toBe("DependentProviderA.handle");
-      expect(dependentProviderAInstance.context?.source).toBe(7);
+      expect(dependentProviderAInstance.context?.source).toBe("7");
     });
   });
 });

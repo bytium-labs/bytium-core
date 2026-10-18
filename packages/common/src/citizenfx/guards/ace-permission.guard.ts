@@ -24,8 +24,8 @@ export class AcePermissionGuard implements CanActivate {
       throw new Error(`@RequireAce("${ace}") is not available in "${context.type}" handlers - no source is present.`);
     }
 
-    const source = (context as typeof context & { source: number }).source;
+    const source = (context as typeof context & { source: string }).source;
 
-    return IsPlayerAceAllowed(String(source), ace);
+    return IsPlayerAceAllowed(source, ace);
   }
 }

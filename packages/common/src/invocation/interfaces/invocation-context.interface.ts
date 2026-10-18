@@ -11,8 +11,8 @@ export interface InvocationContextInterface {
   /** Provider class and method of the invoked handler. */
   handler: string;
 
-  /** Server id of the player that triggered the invocation, when there is one. */
-  source?: number;
+  /** Source of the invocation as `@Source()` gives it, when the invocation surface has one. */
+  source?: string;
 
   /** Name of the resource that called the Transferable method, for cross-resource invocations. */
   invokedBy?: string;

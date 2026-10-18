@@ -24,10 +24,10 @@ export class EventBusService {
    * Emits a net event; handlers subscribe with \@OnNetEvent.
    *
    * @param name Net event name.
-   * @param target Target player source.
+   * @param target Target player source, or `"-1"` for every player.
    * @param args Arguments forwarded to the handlers.
    */
-  emitNet(name: string, target: number, ...args: any[]): void {
+  emitNet(name: string, target: string, ...args: any[]): void {
     emitNet(name, target, ...args);
   }
 
@@ -50,7 +50,7 @@ export class EventBusService {
    * @param args Arguments forwarded to the handler.
    * @returns The handler's response.
    */
-  invokeNetCallback<T>(name: string, target: number, ...args: any[]): Promise<T> {
+  invokeNetCallback<T>(name: string, target: string, ...args: any[]): Promise<T> {
     return this.callbacksService.invokeNet<T>(name, target, ...args);
   }
 }

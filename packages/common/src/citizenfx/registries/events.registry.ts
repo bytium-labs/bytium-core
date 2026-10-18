@@ -1,3 +1,4 @@
+import { stringifySource } from "@citizenfx/utils/source.utils";
 import { OnClientResourceStartOptions } from "@citizenfx/decorators/client/on-client-resource-start.decorator";
 import { OnClientResourceStopOptions } from "@citizenfx/decorators/client/on-client-resource-stop.decorator";
 import { OnConsoleOutputOptions } from "@citizenfx/decorators/server/on-console-output.decorator";
@@ -176,10 +177,18 @@ export class EventsRegistry {
     handlerInvoker: HandlerInvoker,
   ): void {
     on(options.name, (...rawArgs: any[]) => {
-      const source = global.source;
+      const rawSource: unknown = global.source;
       const { args, correlationId } = extractCorrelationEnvelope(rawArgs);
       const context = this.#isCitizenFXServer
-        ? { type: "ON_EVENT", provider: instance, methodName, source, args, correlationId }
+        ? {
+            type: "ON_EVENT",
+            provider: instance,
+            methodName,
+            source: stringifySource(rawSource),
+            rawSource,
+            args,
+            correlationId,
+          }
         : { type: "ON_EVENT", provider: instance, methodName, args };
 
       this.#runHandler(
@@ -222,7 +231,8 @@ export class EventsRegistry {
     handlerInvoker: HandlerInvoker,
   ): void {
     onNet(options.name, (...rawArgs: any[]) => {
-      const source = global.source;
+      const rawSource: unknown = global.source;
+      const source = stringifySource(rawSource);
       const { args, correlationId } = extractCorrelationEnvelope(rawArgs);
       const context = this.#isCitizenFXServer
         ? // a correlationId supplied by a player is untrusted; adopt it only for local emits
@@ -231,6 +241,7 @@ export class EventsRegistry {
             provider: instance,
             methodName,
             source,
+            rawSource,
             args,
             correlationId: Number(source) > 0 ? undefined : correlationId,
           }

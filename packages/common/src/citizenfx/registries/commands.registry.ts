@@ -1,3 +1,4 @@
+import { stringifySource } from "@citizenfx/utils/source.utils";
 import { CommandOptions as ServerCommandOptions } from "@citizenfx/decorators/server/command.decorator";
 import { CommandOptions as ClientCommandOptions } from "@citizenfx/decorators/client/command.decorator";
 import { CitizenFXRegisteredCommandInterface } from "@citizenfx/interfaces/citizenfx-registered-command.interface";
@@ -22,9 +23,10 @@ export class CommandsRegistry {
     options: ServerCommandOptions | ClientCommandOptions,
     provider: ConstructorType,
     handlerInvoker: HandlerInvoker,
-  ): (source: number, args: string[], rawCommand: string) => void {
-    const commandHandleWrapper = async (source: number, args: string[], rawCommand: string) => {
-      const context = { type: "COMMAND", provider: instance, methodName, source, args, rawCommand };
+  ): (rawSource: number, args: string[], rawCommand: string) => void {
+    const commandHandleWrapper = async (rawSource: number, args: string[], rawCommand: string) => {
+      const source = stringifySource(rawSource);
+      const context = { type: "COMMAND", provider: instance, methodName, source, rawSource, args, rawCommand };
 
       await handlerInvoker.runCorrelated(context, async () => {
         try {

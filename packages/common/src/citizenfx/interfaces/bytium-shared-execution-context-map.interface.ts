@@ -2,7 +2,7 @@
  * Invocation surfaces present on both server and client, open for module augmentation by custom triggers that run in both environments.
  */
 export interface BytiumSharedExecutionContextMap {
-  COMMAND: { source: number; args: string[]; rawCommand: string };
+  COMMAND: { source: string; rawSource: unknown; args: string[]; rawCommand: string };
   CALLBACK: { args: unknown[] };
   ON_EVENT: { args: unknown[] };
   ON_CONVAR_CHANGE: { convarName: string };
