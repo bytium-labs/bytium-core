@@ -71,10 +71,14 @@ export class BytiumDependencyScanner {
     this.#createNode(target, BytiumDependencyTypeEnum.RESOURCE, { options });
 
     for (const resource of options.imports ?? []) {
-      if (typeof resource !== "string") continue;
+      const name = typeof resource === "string" ? resource : resource?.name;
 
-      this.#createNode(resource, BytiumDependencyTypeEnum.EXTERNAL_RESOURCE);
-      this.graph.addEdge(target, resource, GraphEdgeTypeEnum.IMPORTS);
+      if (typeof name !== "string") continue;
+
+      this.#createNode(name, BytiumDependencyTypeEnum.EXTERNAL_RESOURCE, {
+        requiredVersion: typeof resource === "string" ? undefined : resource.version,
+      });
+      this.graph.addEdge(target, name, GraphEdgeTypeEnum.IMPORTS);
     }
 
     for (const module of options.modules) {

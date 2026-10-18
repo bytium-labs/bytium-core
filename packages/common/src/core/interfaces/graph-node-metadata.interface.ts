@@ -15,4 +15,5 @@ export interface GraphNodeMetadataInterface {
   forwardRefParams?: number[];
   optionalParams?: number[];
   propertyInjections?: PropertyInjectionInterface[];
+  requiredVersion?: string;
 }

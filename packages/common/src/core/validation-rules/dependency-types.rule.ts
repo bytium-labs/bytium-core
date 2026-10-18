@@ -1,4 +1,7 @@
 import { ValidationRuleInterface } from "@core/interfaces/validation-rule.interface";
+import { InvalidArgumentException } from "@core/exceptions/invalid-argument.exception";
+import { SemverRangeMatcher } from "@core/matchers/semver-range.matcher";
+import { escapeColorCodes } from "@shared/utils/escape-color-codes.utils";
 import { DependencyGraph } from "@core/graphs/dependency.graph";
 import { GraphNodeModel } from "@core/models/graph-node.model";
 import { BytiumDependencyTypeEnum } from "@core/enums/bytium-dependency-type.enum";
@@ -247,10 +250,17 @@ export class DependencyTypesValidationRule implements ValidationRuleInterface {
       for (const [index, item] of options.imports.entries()) {
         if (item === null || item === undefined) continue;
 
-        if (typeof item !== "string") {
+        if (typeof item === "string") continue;
+
+        if (typeof item !== "object" || typeof item.name !== "string" || typeof item.version !== "string") {
           throw new WrongDependencyTypeException(
-            `Import in resource "${nodeName}" at imports[${index}] is not a string. ` +
-              `Resource imports must be external resource links (strings like "resource-name:ModuleName").`,
+            `Import in resource "${nodeName}" at imports[${index}] is neither a resource name nor a { name, version } object. Resource imports look like "resource-name" or { name: "resource-name", version: "^1.0.0" }.`,
+          );
+        }
+
+        if (!SemverRangeMatcher.isValidRange(item.version)) {
+          throw new InvalidArgumentException(
+            `Resource "${nodeName}" imports "${item.name}" with unsupported version range "${escapeColorCodes(item.version)}". Supported forms: an exact version, ^x.y.z, ~x.y.z, >=x.y.z and wildcards like 1.x.`,
           );
         }
       }

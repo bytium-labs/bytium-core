@@ -1,13 +1,14 @@
 import { BytiumDependencyTypeEnum } from "@core/enums/bytium-dependency-type.enum";
 import { BytiumResourceDynamicModuleInterface } from "@core/interfaces/bytium-resource-dynamic-module.interface";
+import { ExternalResourceImportInterface } from "@core/interfaces/external-resource-import.interface";
 import { BytiumMetadataEnum, ConstructorType } from "@shared";
 
 /**
  * Options for `@BytiumResource()`.
  */
 export class BytiumResourceOptions {
-  /** External resource names to import (e.g. "resourceName"). */
-  imports?: string[] = [];
+  /** External resources to import - a name, or a name with the semver range it works with. */
+  imports?: (string | ExternalResourceImportInterface)[] = [];
 
   /** Modules this resource registers. */
   modules: (ConstructorType | BytiumResourceDynamicModuleInterface)[] = [];

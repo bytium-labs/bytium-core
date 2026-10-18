@@ -1,5 +1,6 @@
 export { BYTIUM_VERSION } from "@core/version";
 export { BytiumResource, BytiumResourceOptions } from "@core/decorators/bytium-resource.decorator";
+export { ExternalResourceImportInterface } from "@core/interfaces/external-resource-import.interface";
 export { BytiumResourceModule, BytiumResourceModuleOptions } from "@core/decorators/bytium-resource-module.decorator";
 export { instanceOfTransferable, Transferable, TransferableOptions } from "@core/decorators/transferable.decorator";
 export { Inject, InjectOptions } from "@core/decorators/inject.decorator";

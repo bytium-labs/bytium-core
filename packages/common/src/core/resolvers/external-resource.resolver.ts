@@ -10,6 +10,8 @@ import { BytiumResourceModuleOptions } from "@core/decorators/bytium-resource-mo
 import { ExternalDependencyUnavailableException } from "@core/exceptions/external-dependency-unavailable.exception";
 import { instanceOfForwardRefDependency } from "@core/interfaces/forward-ref-dependency.interface";
 import { parseExternalDependencyName } from "@core/utils/external-token.utils";
+import { SemverRangeMatcher } from "@core/matchers/semver-range.matcher";
+import { escapeColorCodes } from "@shared/utils/escape-color-codes.utils";
 import { getResourceExport } from "@core/utils/resource-export.utils";
 import { instanceOfTransferable } from "@core/decorators/transferable.decorator";
 import { transferableMarshalerInstance } from "@core/marshalers/transferable.marshaler";
@@ -42,6 +44,8 @@ export class ExternalResourceResolver {
         `Resource ${resourceName} is not started/starting. Current state: ${state}.`,
       );
     }
+
+    this.#assertRequiredVersion(resourceName, node.metadata.requiredVersion);
 
     const getBytiumState = getResourceExport(resourceName, BytiumExportNameEnum.BYTIUM_RESOURCE_STATE);
 
@@ -79,6 +83,28 @@ export class ExternalResourceResolver {
     this.graph.markResolved(entry);
 
     return instance;
+  }
+
+  #assertRequiredVersion(resourceName: string, requiredVersion: string | undefined): void {
+    if (!requiredVersion) {
+      return;
+    }
+
+    const runningVersion = GetResourceMetadata(resourceName, "version", 0);
+
+    if (!runningVersion || !SemverRangeMatcher.isValidVersion(runningVersion)) {
+      this.#logger.warn(
+        `Can't verify that resource ${resourceName} satisfies the required version ${escapeColorCodes(requiredVersion)}, its fxmanifest declares ${runningVersion ? `an unreadable version "${escapeColorCodes(runningVersion)}"` : "no version"}.`,
+      );
+
+      return;
+    }
+
+    if (!SemverRangeMatcher.satisfies(runningVersion, requiredVersion)) {
+      throw new ExternalDependencyUnavailableException(
+        `Resource ${resourceName} is required in version ${escapeColorCodes(requiredVersion)}, but version ${runningVersion} is running.`,
+      );
+    }
   }
 
   async resolveExternalModule(node: GraphNodeModel): Promise<string[]> {

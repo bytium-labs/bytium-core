@@ -25,6 +25,9 @@ const exportsStore: Record<string, any> = {};
 (global as any).GetCurrentResourceName = jest.fn(() => "test-resource");
 (global as any).GetInvokingResource = jest.fn(() => "invoking-resource");
 (global as any).GetResourceState = jest.fn(() => "started");
+(global as any).GetResourceMetadata = jest.fn(
+  (_resourceName: string, _key: string, _index: number): string | null => null,
+);
 (global as any).GetConvar = jest.fn((_key: string, defaultValue: string) => defaultValue);
 (global as any).GetConvarInt = jest.fn((_key: string, defaultValue: number) => defaultValue);
 (global as any).LoadResourceFile = jest.fn((_resourceName: string, _fileName: string): string | null => null);

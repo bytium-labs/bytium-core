@@ -7,6 +7,7 @@ import {
   ExternalDependencyUnavailableException,
   Inject,
   Injectable,
+  InvalidArgumentException,
   Transferable,
   WrongDependencyTypeException,
 } from "@core";
@@ -179,6 +180,68 @@ describe("External resources", () => {
       await expect(resolvePromise).rejects.toThrow(/Timeout waiting for bytium resource/);
 
       jest.useRealTimers();
+    });
+  });
+
+  describe("ExternalResource with a required version", () => {
+    let resourceMetadataSpy: jest.SpyInstance;
+
+    beforeAll(() => {
+      resourceMetadataSpy = jest.spyOn(globalThis, "GetResourceMetadata");
+    });
+
+    afterAll(() => {
+      resourceMetadataSpy.mockRestore();
+    });
+
+    const declareResource = (version: string) => {
+      @BytiumResourceModule({ name: "testModule" })
+      class TestModule {}
+
+      @BytiumResource({
+        imports: [{ name: "remote-resource", version }],
+        modules: [TestModule],
+      })
+      class TestResource {}
+
+      return TestResource;
+    };
+
+    it("should resolve when the running version satisfies the required range", async () => {
+      mockRemoteBytiumResource("remote-resource");
+      resourceMetadataSpy.mockReturnValue("1.4.2");
+
+      await expect(dependencyManager.resolve(declareResource("^1.3.0"))).resolves.not.toThrow();
+    });
+
+    it("should refuse to start when the running version is outside the required range", async () => {
+      mockRemoteBytiumResource("remote-resource");
+      resourceMetadataSpy.mockReturnValue("2.0.0");
+
+      await expect(dependencyManager.resolve(declareResource("^1.3.0"))).rejects.toThrow(
+        ExternalDependencyUnavailableException,
+      );
+    });
+
+    it("should name the required range and the running version in the refusal", async () => {
+      mockRemoteBytiumResource("remote-resource");
+      resourceMetadataSpy.mockReturnValue("2.0.0");
+
+      await expect(dependencyManager.resolve(declareResource("^1.3.0"))).rejects.toThrow(/\^\u200B?1\.3\.0.*2\.0\.0/);
+    });
+
+    it("should still resolve when the external resource declares no version", async () => {
+      mockRemoteBytiumResource("remote-resource");
+      resourceMetadataSpy.mockReturnValue(null);
+
+      await expect(dependencyManager.resolve(declareResource("^1.3.0"))).resolves.not.toThrow();
+    });
+
+    it("should reject an unsupported range syntax before resolving anything", async () => {
+      mockRemoteBytiumResource("remote-resource");
+      resourceMetadataSpy.mockReturnValue("1.4.2");
+
+      await expect(dependencyManager.resolve(declareResource("^1.3"))).rejects.toThrow(InvalidArgumentException);
     });
   });
 

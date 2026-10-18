@@ -27,6 +27,7 @@ const exportsStore: Record<string, any> = {};
 (global as any).GetInvokingResource = () => "invoking-resource";
 (global as any).GetConvar = (_key: string, defaultValue: string) => defaultValue;
 (global as any).GetResourceState = () => "started";
+(global as any).GetResourceMetadata = (_resourceName: string, _key: string, _index: number): string | null => null;
 (global as any).IsPlayerAceAllowed = () => true;
 (global as any).GetRegisteredCommands = (): unknown[] => [];
 (global as any).source = 0;
