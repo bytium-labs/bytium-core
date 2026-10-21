@@ -1,3 +1,4 @@
+import { Logger } from "@bytium-core/common";
 import { I18nService } from "@i18n/services/i18n.service";
 import { I18nModuleOptionsInterface } from "@i18n/interfaces/i18n-module-options.interface";
 
@@ -65,6 +66,38 @@ describe("I18nService", () => {
     const i18nServiceInstance = createI18nService();
 
     expect(i18nServiceInstance.t("does.not.exist")).toBe("does.not.exist");
+  });
+
+  it("reports whether a key has a translation in the default locale", () => {
+    const i18nServiceInstance = createI18nService();
+
+    expect(i18nServiceInstance.has("greeting")).toBe(true);
+    expect(i18nServiceInstance.has("bouncer.notWhitelisted")).toBe(true);
+    expect(i18nServiceInstance.has("does.not.exist")).toBe(false);
+  });
+
+  it("reports a key missing in the requested locale as translated when the fallback locale has it", () => {
+    const i18nServiceInstance = createI18nService();
+
+    expect(i18nServiceInstance.has("bouncer.notWhitelisted", "pl")).toBe(true);
+  });
+
+  it("warns once per key and locale about a key with no translation in any locale, but not when only checking it", () => {
+    const warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+    const i18nServiceInstance = createI18nService();
+
+    i18nServiceInstance.t("does.not.exist");
+    i18nServiceInstance.t("does.not.exist");
+    i18nServiceInstance.t("does.not.exist", {}, "pl");
+    i18nServiceInstance.t("greeting", { name: "Ada" });
+    i18nServiceInstance.has("also.does.not.exist");
+
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenNthCalledWith(1, expect.stringContaining('"does.not.exist"'));
+    expect(warnSpy).toHaveBeenNthCalledWith(1, expect.stringContaining('"en"'));
+    expect(warnSpy).toHaveBeenNthCalledWith(2, expect.stringContaining('"pl"'));
+
+    warnSpy.mockRestore();
   });
 
   it("exposes the default locale and which locales are loaded", () => {

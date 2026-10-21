@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@bytium-core/common";
+import { Inject, Injectable, Logger } from "@bytium-core/common";
 import { I18nModuleOptionsInterface } from "@i18n/interfaces/i18n-module-options.interface";
 import { PluralCategory } from "@i18n/types/plural-category.type";
 import { TranslationCatalog, TranslationValue } from "@i18n/types/translation-catalog.type";
@@ -9,7 +9,9 @@ import { TranslationParams } from "@i18n/types/translation-params.type";
  */
 @Injectable()
 export class I18nService {
+  readonly #logger = new Logger("bytium-core");
   readonly #catalogs = new Map<string, TranslationCatalog>();
+  readonly #reportedMissingKeys = new Set<string>();
   readonly #defaultLocale: string;
   readonly #fallbackLocale: string;
 
@@ -33,10 +35,20 @@ export class I18nService {
     const value = this.#lookup(key, locale) ?? this.#lookup(key, this.#fallbackLocale);
 
     if (value === undefined) {
+      this.#reportMissingKey(key, locale);
+
       return key;
     }
 
     return this.#interpolate(this.#selectPluralForm(value, params.count, locale), params);
+  }
+
+  /**
+   * Whether `key` has a translation for `locale` (defaults to the configured default locale) or in the fallback
+   * locale, so `t` resolves it instead of returning `key` itself.
+   */
+  has(key: string, locale: string = this.#defaultLocale): boolean {
+    return (this.#lookup(key, locale) ?? this.#lookup(key, this.#fallbackLocale)) !== undefined;
   }
 
   /** The default locale configured for this resource. */
@@ -47,6 +59,17 @@ export class I18nService {
   /** Whether a catalog is loaded for `locale`. */
   hasLocale(locale: string): boolean {
     return this.#catalogs.has(locale);
+  }
+
+  #reportMissingKey(key: string, locale: string): void {
+    const reportKey = `${locale}:${key}`;
+
+    if (this.#reportedMissingKeys.has(reportKey)) {
+      return;
+    }
+
+    this.#reportedMissingKeys.add(reportKey);
+    this.#logger.warn(`Missing translation "${key}" for locale "${locale}", showing the key instead`);
   }
 
   #loadCatalog(path: string): TranslationCatalog {
